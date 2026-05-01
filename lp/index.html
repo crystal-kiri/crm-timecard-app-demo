@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ぴぽんタイム｜1秒で打刻完了、いちばんシンプルなタイムカード</title>
+<meta name="description" content="名前を選んでポン！それだけ。月3,000円から使える小規模事業者向けタイムカードサービス。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;border:0;}
+img{display:block;max-width:100%;}
+a{color:inherit;text-decoration:none;}
+ol,ul{list-style:none;}
+
+:root{
+  --bg:#f7e0e8;
+  --pink:#e8668e;
+  --purple:#9575cd;
+  --text:#464646;
+  --white:#ffffff;
+  --dark:#3a1a2e;
+  --card-r:28px;
+  --nav-h:52px;
+}
+
+html{font-size:62.5%;height:100%;overflow:hidden;}
+body{
+  font-family:'Noto Sans JP',sans-serif;
+  background-color:var(--bg);
+  color:var(--text);
+  font-size:1.6rem;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+  height:100%;overflow:hidden;
+}
+
+/* ── KEYFRAMES ── */
+@keyframes onp{0%{rotate:-5deg;}40%{rotate:0deg;}70%{rotate:4deg;}100%{rotate:-5deg;}}
+@keyframes marquee{0%{translate:0 0;}to{translate:-100% 0;}}
+
+/* ── SCROLL-IN ── */
+.scroll-in{opacity:0;transform:translateY(16px);}
+.scroll-in.show{opacity:1;transform:none;transition:.5s ease;}
+
+/* ── ONP decos ── */
+.onp{
+  opacity:0;position:absolute;
+  translate:0 8px;transition:.3s ease;
+  pointer-events:none;z-index:3;
+}
+.onp.show{opacity:1;translate:0 0;animation:onp 3.6s ease 0s infinite;}
+.onp img{width:100%;}
+
+/* ══════════════════════════════
+   OPENING SPLASH
+══════════════════════════════ */
+#opening{
+  position:fixed;inset:0;
+  background-color:var(--bg);
+  z-index:200;overflow:hidden;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+}
+.op-d{position:absolute;pointer-events:none;}
+.op-d1{top:8%;left:5%;width:18%;opacity:0;transform:scale(.7) rotate(-15deg);transition:all .8s ease .2s;}
+.op-d2{top:11%;right:4%;width:12%;opacity:0;transform:scale(.7) rotate(12deg);transition:all .8s ease .4s;}
+.op-d3{bottom:17%;left:5%;width:11%;opacity:0;transform:scale(.7);transition:all .8s ease .5s;}
+.op-d4{bottom:14%;right:4%;width:14%;opacity:0;transform:scale(.7) rotate(18deg);transition:all .8s ease .3s;}
+.op-flower{
+  width:44%;max-width:200px;
+  opacity:0;transform:scale(.85) translateY(18px);
+  transition:all 1s ease .1s;
+}
+.op-logo{
+  font-family:'Playfair Display',serif;font-style:italic;
+  font-size:3.2rem;font-weight:700;color:var(--text);
+  opacity:0;transform:translateY(12px);transition:all .8s ease .55s;
+  margin-top:18px;
+}
+.op-tag{
+  font-size:1.3rem;font-weight:700;color:var(--pink);letter-spacing:.06em;
+  opacity:0;transform:translateY(8px);transition:all .8s ease .75s;margin-top:5px;
+}
+#opening.ready .op-d1,#opening.ready .op-d2,#opening.ready .op-d3,#opening.ready .op-d4{opacity:1;transform:scale(1) rotate(0deg);}
+#opening.ready .op-flower{opacity:1;transform:scale(1) translateY(0);}
+#opening.ready .op-logo{opacity:1;transform:none;}
+#opening.ready .op-tag{opacity:1;transform:none;}
+#opening.hide{opacity:0;pointer-events:none;transition:opacity .7s ease;}
+
+/* ══════════════════════════════
+   FIXED NAV
+══════════════════════════════ */
+#nav{
+  position:fixed;top:0;left:0;right:0;
+  height:var(--nav-h);
+  background:rgba(247,224,232,.9);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid rgba(232,102,142,.12);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 5%;z-index:100;
+  opacity:0;transition:opacity .5s ease;
+}
+#nav.show{opacity:1;}
+.nav-logo{
+  font-family:'Playfair Display',serif;font-style:italic;
+  font-size:1.6rem;font-weight:700;color:var(--text);
+}
+.nav-links{display:flex;align-items:center;gap:2px;}
+.nav-links a{
+  font-size:1.2rem;font-weight:600;color:#a07080;
+  padding:5px 10px;border-radius:99px;transition:background .15s;
+}
+.nav-links a:hover{background:rgba(255,255,255,.6);}
+.nav-links .ncta{
+  background:var(--pink);color:#fff;
+  border-radius:99px;padding:5px 14px;
+  box-shadow:0 2px 10px rgba(232,102,142,.35);
+}
+
+/* ══════════════════════════════
+   THE SINGLE CARD
+══════════════════════════════ */
+#card{
+  position:fixed;
+  top:calc(var(--nav-h) + 10px);
+  bottom:14px;
+  left:50%;translate:-50% 0;
+  width:min(92vw, 500px);
+  background:#fff;
+  border-radius:var(--card-r);
+  overflow-y:scroll;overflow-x:hidden;
+  scrollbar-width:none;
+  z-index:2;
+  box-shadow:0 8px 48px rgba(58,26,46,.16),0 2px 12px rgba(58,26,46,.08);
+}
+#card::-webkit-scrollbar{display:none;}
+
+/* ══════════════════════════════
+   HERO (inside card, pink bg)
+══════════════════════════════ */
+#hero{
+  background:var(--bg);
+  border-radius:var(--card-r) var(--card-r) 0 0;
+  overflow:hidden;
+  position:relative;
+}
+.hero-inner{
+  aspect-ratio:3/3.5;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.hero-inner::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 65% at 50% 38%,rgba(255,255,255,.3) 0%,transparent 70%);
+}
+/* CSS mockup */
+.mv{width:62%;max-width:270px;position:relative;z-index:2;}
+.mv-f{background:rgba(255,255,255,.93);border-radius:20px;padding:5px;
+  box-shadow:0 18px 56px rgba(58,26,46,.2),0 4px 14px rgba(58,26,46,.1);}
+.mv-s{background:#fdf4f8;border-radius:16px;padding:18px 15px 15px;}
+.mt{text-align:center;margin-bottom:11px;}
+.mt-n{font-size:3.4rem;font-weight:900;letter-spacing:-.04em;color:var(--text);line-height:1;}
+.mt-d{font-size:.9rem;color:#a07080;margin-top:3px;}
+.mhr{height:1px;background:rgba(232,102,142,.18);margin:0 -2px 11px;}
+.ml{font-size:.85rem;font-weight:700;color:#a07080;letter-spacing:.07em;text-transform:uppercase;margin-bottom:5px;}
+.msel{background:#fff;border:1.5px solid rgba(232,102,142,.18);border-radius:7px;
+  padding:7px 10px;font-size:1.1rem;font-weight:700;color:var(--text);
+  display:flex;justify-content:space-between;margin-bottom:9px;}
+.mbs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
+.mbin{background:linear-gradient(135deg,#f9a8d4,var(--pink));color:#fff;border-radius:8px;
+  padding:12px 4px;font-size:1.1rem;font-weight:900;text-align:center;
+  box-shadow:0 3px 10px rgba(232,102,142,.28);}
+.mbout{background:linear-gradient(135deg,#c4b5fd,var(--purple));color:#fff;border-radius:8px;
+  padding:12px 4px;font-size:1.1rem;font-weight:900;text-align:center;
+  box-shadow:0 3px 10px rgba(149,117,205,.28);}
+.mrec{background:#fff;border:1px solid rgba(232,102,142,.12);border-radius:7px;
+  padding:7px 9px;display:flex;justify-content:space-between;align-items:center;}
+.mrl{font-size:.82rem;color:#a07080;}
+.mrv{font-size:1rem;font-weight:700;color:var(--text);}
+.mbadge{background:#ede9fe;color:var(--purple);font-size:.78rem;font-weight:700;border-radius:3px;padding:2px 5px;}
+
+/* hgroup typographic overlay */
+#hero hgroup{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;justify-content:flex-end;
+  padding:0 0 5% 0;pointer-events:none;z-index:4;
+}
+#hero hgroup h1{
+  font-size:2.6vw;font-weight:700;color:rgba(58,26,46,.32);
+  text-align:center;letter-spacing:.12em;margin-bottom:1.5%;
+  opacity:0;translate:0 16px;transition:1s ease;
+}
+#hero hgroup .sub{
+  font-size:2.2vw;font-weight:500;color:rgba(58,26,46,.28);
+  text-align:center;line-height:1.55;letter-spacing:.14em;margin-bottom:3.5%;
+  opacity:0;translate:0 12px;transition:1s ease .15s;
+}
+.en-title{
+  font-family:'Playfair Display',serif;font-style:italic;
+  font-size:min(17.3333vw,86px);font-weight:700;
+  display:flex;justify-content:space-between;align-items:flex-end;
+  width:84%;margin-inline:auto;line-height:1;
+  color:rgba(58,26,46,.1);
+}
+.en-title span{clip-path:inset(0 100% 0 0);transition:clip-path 1s ease .05s;}
+.en-title span:nth-child(2){clip-path:inset(0 0 0 100%);transition:clip-path 1s ease .25s;}
+body.ready #hero hgroup h1{opacity:1;translate:0 0;}
+body.ready #hero hgroup .sub{opacity:1;translate:0 0;}
+body.ready .en-title span{clip-path:inset(0 0 0 0);}
+
+/* hero onp decos */
+.h-onp1{top:10%;right:3%;width:14%;}
+.h-onp2{top:62%;left:2%;width:11%;}
+
+/* ── MARQUEE ── */
+.mq-wrap{overflow:hidden;width:100%;}
+.mq-inner{animation:marquee 10s linear 0s infinite;display:flex;white-space:nowrap;}
+.mq-pink{background:var(--pink);padding:12px 0;}
+.mq-soft{background:#fdf4f8;padding:10px 0;}
+.mi-w{font-family:'Playfair Display',serif;font-style:italic;font-size:1.35rem;font-weight:700;color:#fff;padding:0 20px;}
+.mi-p{font-family:'Playfair Display',serif;font-style:italic;font-size:1.25rem;font-weight:700;color:rgba(232,102,142,.38);padding:0 16px;}
+.sw{color:rgba(255,255,255,.32);}
+.sp{color:rgba(232,102,142,.18);}
+
+/* ══════════════════════════════
+   SECTIONS inside card
+══════════════════════════════ */
+.sec{
+  padding:36px 28px;
+  border-top:1px solid rgba(232,102,142,.1);
+  position:relative;
+}
+.sec-label{
+  font-family:'Playfair Display',serif;font-style:italic;
+  font-size:1.1rem;font-weight:700;
+  color:rgba(232,102,142,.45);letter-spacing:.1em;
+  display:block;margin-bottom:10px;
+}
+
+/* Big decorative text + image block */
+.sec-visual{
+  position:relative;text-align:center;margin-bottom:24px;
+}
+.sec-ue{
+  font-family:'Playfair Display',serif;font-style:italic;
+  font-size:min(16vw,78px);font-weight:700;
+  color:rgba(232,102,142,.08);
+  display:flex;justify-content:space-between;align-items:flex-start;
+  line-height:1;pointer-events:none;
+  margin-bottom:-1.5em;position:relative;z-index:1;
+}
+.sec-img{
+  position:relative;z-index:2;
+  display:flex;justify-content:center;
+}
+.sec-img img{width:42%;max-width:160px;margin-inline:auto;}
+.sec-shita{
+  font-family:'Playfair Display',serif;font-style:italic;
+  font-size:min(16vw,78px);font-weight:700;
+  color:rgba(232,102,142,.08);
+  text-align:right;line-height:.9;
+  margin-top:-1.2em;pointer-events:none;
+}
+.jp-lead{font-size:1.4rem;line-height:1.75;text-align:center;margin-bottom:22px;color:var(--text);}
+
+/* Pain list */
+.pain-item{display:flex;gap:12px;align-items:flex-start;padding:15px 0;border-bottom:1px solid rgba(232,102,142,.1);}
+.pain-item:first-child{border-top:1px solid rgba(232,102,142,.1);}
+.pain-n{font-family:'Playfair Display',serif;font-style:italic;font-size:2.4rem;font-weight:700;color:rgba(232,102,142,.2);line-height:1;flex-shrink:0;width:30px;margin-top:2px;}
+.pain-b h4{font-size:1.35rem;font-weight:900;margin-bottom:3px;}
+.pain-b p{font-size:1.1rem;color:#a07080;line-height:1.7;}
+
+/* Steps */
+.step{display:flex;gap:14px;align-items:flex-start;padding:15px 0;border-bottom:1px solid rgba(232,102,142,.1);}
+.step:first-child{border-top:1px solid rgba(232,102,142,.1);}
+.step-n{font-family:'Playfair Display',serif;font-style:italic;font-size:2.8rem;font-weight:700;color:var(--pink);line-height:1;flex-shrink:0;width:36px;}
+.step h3{font-size:1.35rem;font-weight:900;margin-bottom:3px;}
+.step p{font-size:1.1rem;color:#a07080;line-height:1.7;}
+
+/* Features grid */
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid rgba(232,102,142,.1);border-left:1px solid rgba(232,102,142,.1);}
+.feat{padding:18px 14px;border-right:1px solid rgba(232,102,142,.1);border-bottom:1px solid rgba(232,102,142,.1);}
+.feat-ico{font-size:2rem;margin-bottom:6px;display:block;}
+.feat h3{font-size:1.25rem;font-weight:900;margin-bottom:3px;}
+.feat p{font-size:1.05rem;color:#a07080;line-height:1.6;}
+
+/* Pricing */
+.price-num{font-size:clamp(4.8rem,13vw,7.5rem);font-weight:900;letter-spacing:-.04em;line-height:1;color:var(--pink);margin:8px 0 3px;}
+.price-unit{font-size:1.15rem;color:#a07080;margin-bottom:20px;}
+.price-perks{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.perk{display:flex;align-items:center;gap:7px;font-size:1.2rem;}
+.perk::before{content:'✦';color:var(--pink);font-size:.8rem;flex-shrink:0;}
+.price-btn{display:block;width:100%;text-align:center;background:var(--pink);color:#fff;border-radius:99px;padding:14px;font-size:1.35rem;font-weight:700;box-shadow:0 4px 20px rgba(232,102,142,.35);transition:transform .15s,box-shadow .15s;}
+.price-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(232,102,142,.42);}
+.price-note{font-size:1.05rem;color:#a07080;text-align:center;margin-top:10px;}
+
+/* FAQ */
+.faq-item{border-bottom:1px solid rgba(232,102,142,.1);padding:16px 0;}
+.faq-item:first-child{border-top:1px solid rgba(232,102,142,.1);}
+.faq-q{display:flex;gap:9px;font-size:1.3rem;font-weight:700;}
+.faq-qt{flex-shrink:0;color:var(--pink);font-family:'Playfair Display',serif;font-style:italic;font-size:1.45rem;}
+.faq-a{font-size:1.15rem;color:#a07080;line-height:1.75;margin-top:6px;padding-left:22px;}
+
+/* CTA block inside card */
+#cta-block{
+  background:var(--dark);
+  margin:0;padding:48px 28px;
+  text-align:center;position:relative;overflow:hidden;
+}
+#cta-block::before{content:'';position:absolute;top:-70px;left:50%;translate:-50% 0;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,rgba(232,102,142,.2) 0%,transparent 70%);pointer-events:none;}
+.cta-en{font-family:'Playfair Display',serif;font-style:italic;font-size:1.15rem;color:rgba(255,255,255,.22);letter-spacing:.1em;margin-bottom:12px;display:block;}
+#cta-block h2{font-size:clamp(2.2rem,5.5vw,3.4rem);font-weight:900;line-height:1.2;color:#fff;margin-bottom:10px;position:relative;z-index:1;}
+#cta-block h2 em{font-style:normal;color:var(--pink);}
+.cta-sub{font-size:1.25rem;color:rgba(255,255,255,.35);margin-bottom:28px;position:relative;z-index:1;}
+.cta-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;}
+.btn-o{background:var(--pink);color:#fff;border-radius:99px;padding:13px 26px;font-size:1.35rem;font-weight:700;box-shadow:0 6px 24px rgba(232,102,142,.4);transition:transform .15s;}
+.btn-o:hover{transform:translateY(-2px);}
+.btn-g{background:transparent;color:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.14);border-radius:99px;padding:12px 20px;font-size:1.35rem;font-weight:600;transition:background .2s;}
+.btn-g:hover{background:rgba(255,255,255,.08);}
+
+/* Footer inside card */
+#card-footer{
+  padding:24px 28px 36px;text-align:center;
+  border-top:1px solid rgba(232,102,142,.1);
+}
+.ft-logo{font-family:'Playfair Display',serif;font-style:italic;font-size:1.5rem;color:rgba(58,26,46,.28);margin-bottom:9px;}
+.ft-links{display:flex;gap:14px;justify-content:center;margin-bottom:8px;flex-wrap:wrap;}
+.ft-links a{font-size:1.05rem;color:rgba(58,26,46,.26);transition:color .15s;}
+.ft-links a:hover{color:rgba(58,26,46,.5);}
+.ft-copy{font-size:.95rem;color:rgba(58,26,46,.2);}
+
+/* Fixed copyright */
+#copy-fixed{
+  position:fixed;bottom:12px;right:14px;
+  font-size:.95rem;color:rgba(58,26,46,.26);
+  letter-spacing:.04em;z-index:50;pointer-events:none;
+}
+
+@media(max-width:480px){
+  .feat-grid{grid-template-columns:1fr;}
+  .en-title{font-size:17vw;}
+  .sec-ue,.sec-shita{font-size:17vw;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── OPENING SPLASH ── -->
+<div id="opening">
+  <div class="op-d op-d1"><img src="assets/deco_flower.png" alt=""></div>
+  <div class="op-d op-d2"><img src="assets/icon_star.png" alt=""></div>
+  <div class="op-d op-d3"><img src="assets/icon_heart.png" alt=""></div>
+  <div class="op-d op-d4"><img src="assets/deco_tulip.png" alt=""></div>
+  <div class="op-flower"><img src="assets/deco_flower.png" alt=""></div>
+  <div class="op-logo">Pippon Time</div>
+  <p class="op-tag">1秒で打刻完了</p>
+</div>
+
+<!-- ── FIXED NAV ── -->
+<nav id="nav">
+  <div class="nav-logo">Pippon Time</div>
+  <div class="nav-links">
+    <a href="#" onclick="scrollTo('s-feat')">機能</a>
+    <a href="#" onclick="scrollTo('s-price')">料金</a>
+    <a href="https://crm-timecard.streamlit.app/" target="_blank" class="ncta">無料デモ</a>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════
+     THE ONE CARD
+══════════════════════════════ -->
+<div id="card">
+
+  <!-- HERO (pink bg top of card) -->
+  <div id="hero">
+    <div class="hero-inner">
+      <div class="mv">
+        <div class="mv-f">
+          <div class="mv-s">
+            <div class="mt">
+              <div class="mt-n">09:01</div>
+              <div class="mt-d">2026年5月1日（金）</div>
+            </div>
+            <div class="mhr"></div>
+            <div class="ml">Staff</div>
+            <div class="msel"><span>田中　さくら</span><span style="color:#a07080">▼</span></div>
+            <div class="mbs">
+              <div class="mbin">出勤</div>
+              <div class="mbout">退勤</div>
+            </div>
+            <div class="mrec">
+              <div><div class="mrl">本日の打刻</div><div class="mrv">09:01 〜 −</div></div>
+              <div class="mbadge">出勤中</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="onp h-onp1"><img src="assets/deco_flower.png" alt=""></div>
+      <div class="onp h-onp2"><img src="assets/icon_star.png" alt=""></div>
+    </div>
+    <hgroup>
+      <h1>PIPPON TIME</h1>
+      <p class="sub">TIMECARD<br>FOR SMALL TEAMS<br>DAILY</p>
+      <p class="en-title"><span>Pippon</span><span>Time</span></p>
+    </hgroup>
+  </div>
+
+  <!-- MARQUEE 1 -->
+  <div class="mq-wrap mq-pink">
+    <div class="mq-inner">
+      <span class="mi-w">Simple Timecard</span><span class="sw"> ✦ </span>
+      <span class="mi-w">ぴぽんタイム</span><span class="sw"> ✦ </span>
+      <span class="mi-w">1秒で打刻完了</span><span class="sw"> ✦ </span>
+      <span class="mi-w">Lovely &amp; Easy</span><span class="sw"> ✦ </span>
+      <span class="mi-w">月3,000円〜</span><span class="sw"> ✦ </span>
+      <span class="mi-w">Simple Timecard</span><span class="sw"> ✦ </span>
+      <span class="mi-w">ぴぽんタイム</span><span class="sw"> ✦ </span>
+      <span class="mi-w">1秒で打刻完了</span><span class="sw"> ✦ </span>
+      <span class="mi-w">Lovely &amp; Easy</span><span class="sw"> ✦ </span>
+      <span class="mi-w">月3,000円〜</span><span class="sw"> ✦ </span>
+    </div>
+  </div>
+
+  <!-- SECTION: PROBLEM -->
+  <div class="sec" id="s-pain">
+    <span class="sec-label scroll-in">Problem</span>
+    <div class="sec-visual scroll-in">
+      <p class="sec-ue"><span>こんな</span><span>悩み</span></p>
+      <div class="sec-img"><img src="assets/deco_flower.png" alt=""></div>
+      <p class="sec-shita">ありませんか</p>
+      <div class="onp" style="top:8%;right:1%;width:14%;animation-delay:.3s"><img src="assets/icon_heart.png" alt=""></div>
+    </div>
+    <p class="jp-lead scroll-in">集計・手入力・高い月額。<br>全部まとめて解決します。</p>
+    <div class="pain-item scroll-in">
+      <div class="pain-n">01</div>
+      <div class="pain-b"><h4>集計が毎月しんどい</h4><p>紙を見ながら電卓で計算。ミスも多く、給与計算のたびに憂鬱になる。</p></div>
+    </div>
+    <div class="pain-item scroll-in">
+      <div class="pain-n">02</div>
+      <div class="pain-b"><h4>スタッフが使いこなせるか不安</h4><p>ITに慣れていないスタッフがいる。難しいシステムは使われない。</p></div>
+    </div>
+    <div class="pain-item scroll-in">
+      <div class="pain-n">03</div>
+      <div class="pain-b"><h4>大手システムは高すぎる</h4><p>月1万円以上は10名規模には割に合わない。でも無料ツールは機能不足。</p></div>
+    </div>
+    <div class="pain-item scroll-in">
+      <div class="pain-n">04</div>
+      <div class="pain-b"><h4>Excelの手入力でミスが出る</h4><p>入力漏れや間違いが後から発覚。修正のたびに余計な時間がかかる。</p></div>
+    </div>
+  </div>
+
+  <!-- MARQUEE 2 -->
+  <div class="mq-wrap mq-soft">
+    <div class="mq-inner" style="animation-direction:reverse;animation-duration:16s;">
+      <span class="mi-p">Tap</span><span class="sp"> ✦ </span>
+      <span class="mi-p">Select</span><span class="sp"> ✦ </span>
+      <span class="mi-p">Done</span><span class="sp"> ✦ </span>
+      <span class="mi-p">Tap</span><span class="sp"> ✦ </span>
+      <span class="mi-p">Select</span><span class="sp"> ✦ </span>
+      <span class="mi-p">Done</span><span class="sp"> ✦ </span>
+      <span class="mi-p">Tap</span><span class="sp"> ✦ </span>
+      <span class="mi-p">Select</span><span class="sp"> ✦ </span>
+      <span class="mi-p">Done</span><span class="sp"> ✦ </span>
+      <span class="mi-p">Tap</span><span class="sp"> ✦ </span>
+      <span class="mi-p">Select</span><span class="sp"> ✦ </span>
+      <span class="mi-p">Done</span><span class="sp"> ✦ </span>
+    </div>
+  </div>
+
+  <!-- SECTION: HOW -->
+  <div class="sec" id="s-how">
+    <span class="sec-label scroll-in">How it works</span>
+    <div class="sec-visual scroll-in">
+      <p class="sec-ue"><span>3</span><span>Steps</span></p>
+      <div class="sec-img"><img src="assets/deco_tulip.png" alt=""></div>
+      <p class="sec-shita">だけ</p>
+      <div class="onp" style="top:12%;left:2%;width:11%;animation-delay:.9s"><img src="assets/icon_star.png" alt=""></div>
+    </div>
+    <p class="jp-lead scroll-in">ITが苦手でも大丈夫。<br>マニュアルは必要ありません。</p>
+    <div class="step scroll-in">
+      <div class="step-n">1</div>
+      <div><h3>タブレットを設置する</h3><p>入口にiPadやAndroidを1台置くだけ。</p></div>
+    </div>
+    <div class="step scroll-in">
+      <div class="step-n">2</div>
+      <div><h3>名前を選んでポン</h3><p>名前を選んで出勤か退勤を押す。それだけ。</p></div>
+    </div>
+    <div class="step scroll-in">
+      <div class="step-n">3</div>
+      <div><h3>スプシに自動で記録</h3><p>Googleスプレッドシートに即保存。集計も自動。</p></div>
+    </div>
+  </div>
+
+  <!-- SECTION: FEATURES -->
+  <div class="sec" id="s-feat">
+    <span class="sec-label scroll-in">Features</span>
+    <div class="sec-visual scroll-in">
+      <p class="sec-ue"><span>Simple</span><span>Smart</span></p>
+      <div class="sec-img"><img src="assets/deco_flower.png" alt=""></div>
+      <p class="sec-shita">ちゃんと使える</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat scroll-in"><span class="feat-ico">⚡</span><h3>1秒で打刻完了</h3><p>名前を選んでボタンを押すだけ。</p></div>
+      <div class="feat scroll-in"><span class="feat-ico">📊</span><h3>スプシ自動連携</h3><p>打刻データが自動で保存。</p></div>
+      <div class="feat scroll-in"><span class="feat-ico">📱</span><h3>タブレット1台でOK</h3><p>iPadでもAndroidでも動く。</p></div>
+      <div class="feat scroll-in"><span class="feat-ico">🗓</span><h3>勤務記録を一覧表示</h3><p>今週・今月がひと目でわかる。</p></div>
+      <div class="feat scroll-in"><span class="feat-ico">🔧</span><h3>初期設定はおまかせ</h3><p>置くだけでOK。すぐ使える。</p></div>
+      <div class="feat scroll-in"><span class="feat-ico">🏪</span><h3>業種を選ばない</h3><p>10名規模ならどこでも使える。</p></div>
+    </div>
+  </div>
+
+  <!-- SECTION: PRICING -->
+  <div class="sec" id="s-price">
+    <span class="sec-label scroll-in">Pricing</span>
+    <div class="sec-visual scroll-in">
+      <p class="sec-ue"><span>¥3K</span><span>/ 月</span></p>
+      <div class="sec-img" style="gap:8%;align-items:center;">
+        <img src="assets/icon_heart.png" alt="" style="width:28%;max-width:100px;margin:0;">
+        <img src="assets/icon_star.png" alt="" style="width:28%;max-width:100px;margin:0;">
+      </div>
+      <p class="sec-shita">シンプル</p>
+    </div>
+    <div class="price-num scroll-in">¥3,000</div>
+    <div class="price-unit">/ 月（税別）〜 10名まで</div>
+    <div class="price-perks">
+      <div class="perk">初月無料・初期費用0円</div>
+      <div class="perk">月単位の契約、違約金なし</div>
+      <div class="perk">初期設定サポート込み</div>
+      <div class="perk">タブレット台数制限なし</div>
+      <div class="perk">Googleスプレッドシート自動連携</div>
+    </div>
+    <a href="mailto:kei_kawai_g@haltalk.com?subject=ぴぽんタイム お問い合わせ" class="price-btn">申し込む →</a>
+    <p class="price-note">※ 11名以上は別途ご相談ください</p>
+  </div>
+
+  <!-- SECTION: FAQ -->
+  <div class="sec" id="s-faq">
+    <span class="sec-label scroll-in">FAQ</span>
+    <div class="faq-item scroll-in">
+      <div class="faq-q"><span class="faq-qt">Q.</span>どんなタブレットでも使えますか？</div>
+      <div class="faq-a">iPad、Androidタブレット、どちらでも使えます。ブラウザで動作するため機種を選びません。</div>
+    </div>
+    <div class="faq-item scroll-in">
+      <div class="faq-q"><span class="faq-qt">Q.</span>Googleアカウントが必要ですか？</div>
+      <div class="faq-a">管理者側にGoogleアカウント（無料）が必要です。スタッフはアカウント不要で打刻できます。</div>
+    </div>
+    <div class="faq-item scroll-in">
+      <div class="faq-q"><span class="faq-qt">Q.</span>データはどこに保存されますか？</div>
+      <div class="faq-a">お客様のGoogleスプレッドシートに直接保存されます。データはお客様が所有・管理します。</div>
+    </div>
+    <div class="faq-item scroll-in">
+      <div class="faq-q"><span class="faq-qt">Q.</span>解約はいつでもできますか？</div>
+      <div class="faq-a">月単位の契約です。いつでも解約できます。違約金・手数料は一切ありません。</div>
+    </div>
+    <div class="faq-item scroll-in">
+      <div class="faq-q"><span class="faq-qt">Q.</span>設定が難しそうで不安です。</div>
+      <div class="faq-a">初期設定はこちらで行います。お客様はタブレットを置くだけでOKです。</div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div id="cta-block" class="scroll-in">
+    <span class="cta-en">Start your free trial today</span>
+    <h2>まず<em>無料デモ</em>を<br>触ってみて。</h2>
+    <p class="cta-sub">本当にこれだけ？と思うくらいシンプルです。</p>
+    <div class="cta-btns">
+      <a href="https://crm-timecard.streamlit.app/" target="_blank" class="btn-o">無料デモを試す →</a>
+      <a href="mailto:kei_kawai_g@haltalk.com?subject=ぴぽんタイム お問い合わせ" class="btn-g">お問い合わせ</a>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div id="card-footer">
+    <div class="ft-logo">Pippon Time</div>
+    <div class="ft-links">
+      <a href="mailto:kei_kawai_g@haltalk.com">お問い合わせ</a>
+      <a href="https://crm-timecard.streamlit.app/" target="_blank">デモサイト</a>
+      <a href="https://anaheimelectronics.jp/">AnaheimElectronics</a>
+    </div>
+    <div class="ft-copy">© 2026 anaheimelectronic</div>
+  </div>
+
+</div><!-- /#card -->
+
+<div id="copy-fixed">© anaheimelectronic</div>
+
+<script>
+// ── OPENING ──
+const opening = document.getElementById('opening');
+const nav = document.getElementById('nav');
+
+requestAnimationFrame(() => { opening.classList.add('ready'); });
+
+setTimeout(() => {
+  opening.classList.add('hide');
+  document.body.classList.add('ready');
+  nav.classList.add('show');
+
+  setTimeout(() => {
+    // show hero onp after ready
+    document.querySelectorAll('#hero .onp').forEach(el => el.classList.add('show'));
+  }, 600);
+
+  setTimeout(() => { opening.style.display = 'none'; }, 900);
+}, 2600);
+
+// ── SCROLL-IN (root = #card) ──
+const card = document.getElementById('card');
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('show'); io.unobserve(e.target); }
+  });
+}, { root: card, threshold: 0.1 });
+document.querySelectorAll('.scroll-in').forEach(el => io.observe(el));
+
+// ── ONP inside sections ──
+const onpObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('show'); onpObs.unobserve(e.target); }
+  });
+}, { root: card, threshold: 0.05 });
+document.querySelectorAll('.sec .onp').forEach(el => onpObs.observe(el));
+
+// ── NAV section scroll ──
+function scrollTo(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
