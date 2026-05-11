@@ -31,7 +31,6 @@ secrets = dict(st.secrets["connections"]["gsheets"])
 secrets["private_key"] = secrets["private_key"].replace("\\n", "\n")
 
 conn = st.connection("gsheets", type=GSheetsConnection)
-URL = "https://docs.google.com/spreadsheets/d/1sre3zJjtizkbtDpql0_esYbIVvuaKYYEtSPvZve8eDk/edit?gid=0#gid=0"
 
 # ==========================================
 # 2. CSSデザイン (ボタン・メッセージ・全体)
@@ -262,7 +261,10 @@ st.components.v1.html(f"""
 # 4. 操作セクション
 # ==========================================
 try:
-    df_members = conn.read(spreadsheet=URL, worksheet="スタッフ名簿", ttl=60)
+    df_members = conn.read(
+    worksheet="スタッフ名簿",
+    ttl=0
+)
 
     if df_members is None or df_members.empty or "名前" not in df_members.columns:
         st.error("スタッフ名簿が空か、名前列がありません")
