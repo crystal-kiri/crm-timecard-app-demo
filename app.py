@@ -31,7 +31,7 @@ secrets = dict(st.secrets["connections"]["gsheets"])
 secrets["private_key"] = secrets["private_key"].replace("\\n", "\n")
 
 conn = st.connection("gsheets", type=GSheetsConnection)
-
+st.write(conn)
 # ==========================================
 # 2. CSSデザイン (ボタン・メッセージ・全体)
 # ==========================================
