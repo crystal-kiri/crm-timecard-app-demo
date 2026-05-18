@@ -248,8 +248,12 @@ if not st.session_state.logged_in:
     
     if login_clicked:
         if input_id and input_pw:
+            # 🔍 エラーの本当の原因をあぶり出すためのデバッグ処理
             try:
+                # 1. まずマスターを読み込む（書き方を最もシンプルな形に）
                 master_df = conn.read(URL, worksheet="契約企業マスター", ttl=0)
+                
+                # 2. 読み込めたら中身を判定
                 match = master_df[(master_df["企業ID"] == input_id) & (master_df["パスワード"] == input_pw)]
                 
                 if not match.empty:
@@ -259,8 +263,16 @@ if not st.session_state.logged_in:
                     st.rerun()
                 else:
                     st.error("企業IDまたはパスワードが正しくありません。")
+                    
             except Exception as e:
-                st.error("システムの読み込みに失敗しました。『契約企業マスター』タブが存在するか確認してください。")
+                # 🔴 エラーの生データを隠さずに画面に出す
+                st.error("🚨 スプレッドシートの読み込み自体に失敗しています！")
+                st.info(f"【エラーの生データ】: {e}")
+                st.markdown("""
+                **【これが原因のことが多いです】**
+                1. 右上の「共有」で、**『リンクを知っている全員』が『閲覧者』**になっていますか？
+                2. `st.secrets` の設定（URLや認証キー）が間違っている、または反映されていない。
+                """)
         else:
             st.warning("企業IDとパスワードの両方を入力してください。")
     st.stop()
