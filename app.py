@@ -5,10 +5,11 @@ from streamlit_gsheets import GSheetsConnection
 import os
 import io
 from break_slider import break_slider
+
 # ==========================================
 # 1. ページ設定と時間判定
 # ==========================================
-st.set_page_config(page_title="CRYSTAL TIME CARD", layout="centered")
+st.set_page_config(page_title="CRYSTAL TIME CARD (DEMO)", layout="centered")
 
 JST = timezone(timedelta(hours=+9), 'JST')
 now = datetime.now(JST)
@@ -17,7 +18,7 @@ MAIN_GRAY = "#454444"
 
 if is_night:
     bg_color = "#544C78"      # 深いネイビー
-    disp_text = "#FDFBF9"     # 少し柔らかい白（真っ白より目に優しい）
+    disp_text = "#FDFBF9"     # 少し柔らかい白
     box_bg = "rgba(255, 255, 255, 0.06)"
     clock_col = "#e6eaf2"
 else:
@@ -31,7 +32,11 @@ secrets = dict(st.secrets["connections"]["gsheets"])
 secrets["private_key"] = secrets["private_key"].replace("\\n", "\n")
 
 conn = st.connection("gsheets", type=GSheetsConnection)
-st.write(conn)
+
+# 🔗 ここを「デモ用スプレッドシートのURL」に書き換える！
+URL = "https://docs.google.com/spreadsheets/"
+
+
 # ==========================================
 # 2. CSSデザイン (ボタン・メッセージ・全体)
 # ==========================================
@@ -42,7 +47,6 @@ st.markdown(f"""
     {"background: linear-gradient(180deg, #161445 0%, #0b0f2a 60%, #020617 100%) !important;" if is_night else f"background-color: {bg_color} !important;"}
     font-family: 'Noto Sans JP', sans-serif;
 }}
-
 
 [data-testid="stAppViewBlockContainer"] {{
     max-width: 500px !important;
@@ -85,7 +89,6 @@ div[data-testid="stSelectbox"] div[role="button"] {{
     font-weight: 500 !important;
 }}
 
-/* 氏名selectのカーソル */
 div[data-testid="stSelectbox"] input {{
     caret-color: transparent !important;
     cursor: pointer !important;
@@ -96,7 +99,7 @@ div[data-testid="stSelectbox"] * {{
     cursor: pointer !important;
 }}
 
-/* 吹き出し */
+/* 爆速安定ポンッの吹き出しCSS */
 .balloon-msg {{
     margin: 20px auto;
     padding: 15px 25px;
@@ -108,8 +111,9 @@ div[data-testid="stSelectbox"] * {{
     font-weight: 500;
     font-size: 17px;
     position: relative;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    animation: fadeIn 0.4s ease;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    transform: scale(1);
+    opacity: 1;
 }}
 
 .balloon-msg:after {{
@@ -123,9 +127,15 @@ div[data-testid="stSelectbox"] * {{
     border-right: 10px solid transparent;
 }}
 
-@keyframes fadeIn {{
-    from {{ opacity: 0; transform: translateY(5px); }}
-    to {{ opacity: 1; transform: translateY(0); }}
+.balloon-pop {{
+    animation: popBounce 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+    transform-origin: center top;
+}}
+
+@keyframes popBounce {{
+    0% {{ transform: scale(0.6); opacity: 0; }}
+    80% {{ transform: scale(1.04); opacity: 1; }}
+    100% {{ transform: scale(1); opacity: 1; }}
 }}
 
 /* ボタン */
@@ -257,14 +267,12 @@ st.components.v1.html(f"""
     draw();
     </script>
 """, height=180)
+
 # ==========================================
 # 4. 操作セクション
 # ==========================================
 try:
-    df_members = conn.read(
-    worksheet="スタッフ名簿",
-    ttl=0
-)
+    df_members = conn.read(spreadsheet=URL, worksheet="スタッフ名簿", ttl=60)
 
     if df_members is None or df_members.empty or "名前" not in df_members.columns:
         st.error("スタッフ名簿が空か、名前列がありません")
@@ -332,6 +340,8 @@ st.components.v1.html("""
 </script>
 """, height=0)
 
+
+# --- メッセージ初期化 ---
 if 'msg' not in st.session_state:
     st.session_state.msg = "打刻してください"
 
@@ -362,57 +372,43 @@ def save_to_gsheets(name, action, break_minutes=0):
     time_str = now_jst.strftime('%H:%M')
 
     try:
-        df = conn.read(spreadsheet=URL, worksheet=name, ttl=60)
+        df = conn.read(spreadsheet=URL, worksheet="attendance_master", ttl=0)
     except Exception:
         st.error(f"{name} のシートが見つかりません")
-        return
+        return False
 
     if df is None or df.empty:
-        df = pd.DataFrame(columns=["日付", "出勤", "退勤", "休憩(分)", "実稼働"])
+        df = pd.DataFrame(columns=["名前", "日付", "出勤", "退勤", "休憩(分)", "実稼働"])
 
-    for col in ["日付", "出勤", "退勤", "休憩(分)", "実稼働"]:
+    for col in ["名前", "日付", "出勤", "退勤", "休憩(分)", "実稼働"]:
         if col not in df.columns:
             df[col] = None
 
-    df = df[["日付", "出勤", "退勤", "休憩(分)", "実稼働"]].copy()
+    df = df[["名前", "日付", "出勤", "退勤", "休憩(分)", "実稼働"]].copy()
+    
+    df = df.reset_index(drop=True)
+    df["名前"] = df["名前"].astype("string")
     df["日付"] = df["日付"].astype("string")
     df["出勤"] = df["出勤"].astype("string")
     df["退勤"] = df["退勤"].astype("string")
     df["休憩(分)"] = df["休憩(分)"].astype("Int64")
     df["実稼働"] = df["実稼働"].astype("string")
 
-    today_rows = df[df["日付"] == today]
+    today_rows = df[(df["名前"] == name) & (df["日付"] == today)]
 
-    if action == "退勤" and today_rows.empty:
-        st.error("先に出勤を押してください")
-        return
+    if action == "出勤":
+        if not today_rows.empty:
+            idx = today_rows.index[-1]
+            if pd.notna(df.loc[idx, "出勤"]) and pd.isna(df.loc[idx, "退勤"]):
+                st.warning("すでに出勤済みです")
+                return False
 
-    if not today_rows.empty:
-        idx = today_rows.index[-1]
-
-        if action == "出勤":
-            df.loc[idx, "出勤"] = time_str
-        else:
-            if pd.notna(df.loc[idx, "退勤"]):
-                st.warning("すでに退勤済みです")
-                return
-
-            df.loc[idx, "退勤"] = time_str
-            df.loc[idx, "休憩(分)"] = break_minutes
-            df.loc[idx, "実稼働"] = calc_work_duration(
-                df.loc[idx, "出勤"],
-                df.loc[idx, "退勤"],
-                df.loc[idx, "休憩(分)"]
-            )
-    else:
         new_row = pd.DataFrame([{
-            "日付": today,
-            "出勤": time_str if action == "出勤" else None,
-            "退勤": time_str if action == "退勤" else None,
-            "休憩(分)": break_minutes if action == "退勤" else None,
-            "実稼働": None
+            "名前": name, "日付": today, "出勤": time_str,
+            "退勤": None, "休憩(分)": None, "実稼働": None
         }])
-
+        
+        new_row["名前"] = new_row["名前"].astype("string")
         new_row["日付"] = new_row["日付"].astype("string")
         new_row["出勤"] = new_row["出勤"].astype("string")
         new_row["退勤"] = new_row["退勤"].astype("string")
@@ -421,8 +417,29 @@ def save_to_gsheets(name, action, break_minutes=0):
 
         df = pd.concat([df, new_row], ignore_index=True)
 
-    out_df = df[["日付", "出勤", "退勤", "休憩(分)", "実稼働"]].copy()
-    conn.update(spreadsheet=URL, worksheet=name, data=out_df)
+    elif action == "退勤":
+        if today_rows.empty:
+            st.error("先に出勤を押してください")
+            return False
+        
+        idx = today_rows.index[-1]
+        
+        if pd.notna(df.loc[idx, "退勤"]):
+            st.warning("すでに退勤済みです")
+            return False
+
+        df.loc[idx, "退勤"] = time_str
+        df.loc[idx, "休憩(分)"] = break_minutes
+        df.loc[idx, "実稼働"] = calc_work_duration(
+            df.loc[idx, "出勤"], df.loc[idx, "退勤"], df.loc[idx, "休憩(分)"]
+        )
+
+    out_df = df.reset_index(drop=True)
+    out_df = out_df[["名前","日付", "出勤", "退勤", "休憩(分)", "実稼働"]].copy()
+    
+    conn.update(spreadsheet=URL, worksheet="attendance_master", data=out_df)
+    return True
+
 
 selected_break = break_slider(
     label="今日の休憩時間",
@@ -434,48 +451,57 @@ selected_break = break_slider(
     key="break_slider",
 )
 
-c1, c2 = st.columns(2)
+balloon_spot = st.empty()
 
-clicked_action = None
-clicked_msg = None
+c1, c2 = st.columns(2)
 
 with c1:
     if st.button("出 勤", key="in"):
-        clicked_action = "出勤"
-        clicked_msg = f"✨ {selected_name}さん、おはよう！"
+        st.session_state.msg = f"✨ {selected_name}さん、おはよう！"
+        save_to_gsheets(selected_name, "出勤", selected_break)
 
 with c2:
     if st.button("退 勤", key="out"):
-        clicked_action = "退勤"
-        clicked_msg = f"🌙 {selected_name}さん、お疲れ様！"
+        st.session_state.msg = f"🌙 {selected_name}さん、お疲れ様！"
+        save_to_gsheets(selected_name, "退勤", selected_break)
 
-if clicked_msg is not None:
-    st.session_state.msg = clicked_msg
+balloon_spot.markdown(f"""
+<div id="live-balloon" class="balloon-msg balloon-pop">{st.session_state.msg}</div>
+<script>
+(function() {{
+    const doc = window.parent.document;
+    const buttons = doc.querySelectorAll('div[data-testid="stButton"] button');
+    if (buttons.length >= 2) {{
+        buttons[0].addEventListener('click', function() {{
+            const b = doc.getElementById('live-balloon');
+            if(b) {{ b.innerText = "✨ {selected_name}さん、おはよう！"; b.classList.remove('balloon-pop'); b.offsetHeight; b.classList.add('balloon-pop'); }}
+        }});
+        buttons[1].addEventListener('click', function() {{
+            const b = doc.getElementById('live-balloon');
+            if(b) {{ b.innerText = "🌙 {selected_name}さん、お疲れ様！"; b.classList.remove('balloon-pop'); b.offsetHeight; b.classList.add('balloon-pop'); }}
+        }});
+    }}
+}})();
+</script>
+""", unsafe_allow_html=True)
 
-st.markdown(f'<div class="balloon-msg">{st.session_state.msg}</div>', unsafe_allow_html=True)
 
-if clicked_action is not None:
-    save_to_gsheets(selected_name, clicked_action, selected_break)
 # ==========================================
-# 5. 管理者ツール
+# 5. 管理者メニュー
 # ==========================================
-st.write("---")
-
 with st.expander("🛠 管理者メニュー"):
     pw = st.text_input("パスワード", type="password")
 
     if pw == "0123":
-        tab1, tab2 = st.tabs(["📊 打刻データ出力", "👥 スタッフ管理"])
+        tab1, tab2, tab3 = st.tabs(["📊 打刻データ出力", "👥 スタッフ管理", "📈 集計"])
 
-        st.divider()
-        st.write("### 📄 税理士提出用ファイルの作成")
+        with tab1:
+            st.write("### 📄 税理士提出用ファイルの作成")
+            df = conn.read(spreadsheet=URL, worksheet="attendance_master", ttl=60)
+            st.dataframe(df)
 
         with tab2:
-            df_m = conn.read(
-                spreadsheet=URL,
-                worksheet="スタッフ名簿",
-                ttl=60
-            )
+            df_m = conn.read(spreadsheet=URL, worksheet="スタッフ名簿", ttl=60)
             curr_names = df_m['名前'].tolist()
 
             st.markdown("### スタッフの追加")
@@ -485,13 +511,7 @@ with st.expander("🛠 管理者メニュー"):
                 if new_n and new_n not in curr_names:
                     new_staff_df = pd.DataFrame([{'名前': new_n}])
                     updated_df = pd.concat([df_m, new_staff_df], ignore_index=True)
-
-                    conn.update(
-                        spreadsheet=URL,
-                        worksheet="スタッフ名簿",
-                        data=updated_df
-                    )
-
+                    conn.update(spreadsheet=URL, worksheet="スタッフ名簿", data=updated_df)
                     st.success(f"{new_n}さんを登録しました")
                     st.rerun()
 
@@ -506,11 +526,7 @@ with st.expander("🛠 管理者メニュー"):
             with c1_admin:
                 if st.button("上書き保存", key="admin_save"):
                     df_m.loc[df_m['名前'] == target, '名前'] = renamed
-                    conn.update(
-                        spreadsheet=URL,
-                        worksheet="スタッフ名簿",
-                        data=df_m
-                    )
+                    conn.update(spreadsheet=URL, worksheet="スタッフ名簿", data=df_m)
                     st.success("修正しました")
                     st.rerun()
 
@@ -524,17 +540,12 @@ with st.expander("🛠 管理者メニュー"):
                         st.rerun()
                 else:
                     st.warning(f"【確認】本当に {target} さんを消しますか？")
-
                     col_yes, col_no = st.columns(2)
 
                     with col_yes:
                         if st.button("🔴 削除実行", key="admin_del_final"):
                             df_m = df_m[df_m['名前'] != target]
-                            conn.update(
-                                spreadsheet=URL,
-                                worksheet="スタッフ名簿",
-                                data=df_m
-                            )
+                            conn.update(spreadsheet=URL, worksheet="スタッフ名簿", data=df_m)
                             st.session_state.delete_confirm = False
                             st.rerun()
 
@@ -542,26 +553,121 @@ with st.expander("🛠 管理者メニュー"):
                         if st.button("キャンセル", key="admin_del_cancel"):
                             st.session_state.delete_confirm = False
                             st.rerun()
-expander_css = """
+
+        with tab3:
+            st.markdown("""
+                <style>
+                [data-testid="stMetricValue"] { font-size: 24px !important; font-weight: 600 !important; color: #31333F !important; }
+                [data-testid="stMetricLabel"] { font-size: 14px !important; color: #555555 !important; }
+                [data-testid="stMetric"] { background-color: #f8f9fa; padding: 10px 15px; border-radius: 6px; border: 1px solid #eceeef; }
+                </style>
+            """, unsafe_allow_html=True)
+
+            st.markdown("### 📈 スタッフ別・月別集計ダッシュボード")
+            df = conn.read(spreadsheet=URL, worksheet="attendance_master", ttl=10)
+
+            if df is None or df.empty or "実稼働" not in df.columns:
+                st.info("集計するデータがまだありません")
+            else:
+                df_calc = df.dropna(subset=["日付", "名前"]).copy()
+                df_calc["日付"] = pd.to_datetime(df_calc["日付"], errors="coerce")
+                df_calc["月"] = df_calc["日付"].dt.to_period("M").astype(str)
+
+                months = sorted(df_calc["月"].dropna().unique(), reverse=True)
+                if not months:
+                    st.info("有効な月別データがありません")
+                else:
+                    selected_month = st.selectbox("対象月を選択", months, key="report_month_select")
+                    filtered = df_calc[df_calc["月"] == selected_month].copy()
+
+                    def to_total_minutes(val):
+                        if pd.isna(val) or val in ["None", "nan", "", "<NA>"]: return 0
+                        try:
+                            h, m = map(int, str(val).split(':'))
+                            return h * 60 + m
+                        except: return 0
+
+                    filtered["稼働分"] = filtered["実稼働"].apply(to_total_minutes)
+
+                    def format_minutes_to_str(mins):
+                        h = mins // 60
+                        m = mins % 60
+                        return f"{h:02d}:{m:02d}"
+
+                    st.markdown("#### 🔍 スタッフ個別の勤怠詳細")
+                    active_staffs = sorted(filtered["名前"].unique())
+                    
+                    if not active_staffs:
+                        st.info("選択された月の打刻データがありません")
+                    else:
+                        target_staff = st.selectbox("スタッフを選択してください", active_staffs, key="staff_detail_select", label_visibility="collapsed")
+                        
+                        staff_detail = filtered[filtered["名前"] == target_staff].copy()
+                        staff_detail["日付_表示"] = staff_detail["日付"].dt.strftime('%Y-%m-%d')
+                        staff_detail = staff_detail.sort_values("日付", ascending=False)
+                        
+                        display_detail = staff_detail[["日付_表示", "出勤", "退勤", "休憩(分)", "実稼働"]].rename(columns={"日付_表示": "日付"})
+                        display_detail = display_detail.fillna("-").replace({"None": "-", "nan": "-", "": "-"})
+                        st.dataframe(display_detail, use_container_width=True, hide_index=True)
+                        
+                        staff_total_mins = staff_detail["稼働分"].sum()
+                        staff_total_str = format_minutes_to_str(staff_total_mins)
+                        staff_total_hours = round(staff_total_mins / 60, 2)
+                        staff_days = len(staff_detail)
+                        
+                        col_metric1, col_metric2, col_metric3 = st.columns(3)
+                        with col_metric1: st.metric(label="当月出勤日数", value=f"{staff_days} 日")
+                        with col_metric2: st.metric(label="総稼働時間", value=staff_total_str)
+                        with col_metric3: st.metric(label="給与計算用時間", value=f"{staff_total_hours} h")
+                        
+                        individual_raw = df.copy()
+                        individual_raw["月"] = pd.to_datetime(individual_raw["日付"], errors="coerce").dt.to_period("M").astype(str)
+                        staff_download_df = individual_raw[(individual_raw["名前"] == target_staff) & (individual_raw["月"] == selected_month)].drop(columns=["月"])
+                        
+                        csv_individual = staff_download_df.to_csv(index=False).encode("utf-8-sig")
+                        st.download_button(
+                            label=f"📥 {target_staff}さんの勤怠CSVをダウンロード",
+                            data=csv_individual,
+                            file_name=f"勤怠_{target_staff}_{selected_month}.csv",
+                            mime="text/csv",
+                            key="btn_download_individual",
+                            use_container_width=True
+                        )
+                    
+                    st.markdown("#### 👥 全スタッフの月間集計一覧")
+                    summary = filtered.groupby("名前").agg(出勤回数=("日付", "count"), 総稼働分=("稼働分", "sum")).reset_index()
+                    summary["総稼働時間"] = summary["総稼働分"].apply(format_minutes_to_str)
+                    summary["総稼働時間(時間)"] = (summary["総稼働分"] / 60).round(2)
+
+                    disp_summary = summary[["名前", "出勤回数", "総稼働時間", "総稼働時間(時間)"]]
+                    disp_summary = disp_summary.fillna("-").replace({"None": "-", "nan": "-", "": "-"})
+                    st.dataframe(disp_summary, use_container_width=True, hide_index=True)
+
+                    out_df = df.copy()
+                    out_df["月"] = pd.to_datetime(out_df["日付"], errors="coerce").dt.to_period("M").astype(str)
+                    csv_data = out_df[out_df["月"] == selected_month].drop(columns=["月"])
+                    csv_all = csv_data.to_csv(index=False).encode("utf-8-sig")
+                    
+                    st.download_button(
+                        "📥 全員分の月間CSVダウンロード（税理士提出用）",
+                        data=csv_all,
+                        file_name=f"勤怠一覧_全員_{selected_month}.csv",
+                        mime="text/csv",
+                        key="btn_download_all",
+                        use_container_width=True
+                    )
+                    
+            st.markdown("""
 <style>
 div[data-testid="stExpander"] button[kind="secondary"],
 div[data-testid="stExpander"] button[kind="primary"] {
-    width: 100% !important;
-    height: 50px !important;
-    background-color: transparent !important;
-    font-size: 16px !important;
-    border: 1px solid !important;
+    width: 100% !important; height: 50px !important; background-color: transparent !important; font-size: 16px !important; border: 1px solid !important;
     border-image: linear-gradient(90deg, #ffeb3b, #ff9800, #f44336, #e91e63, #3f51b5) 1 !important;
     clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0% calc(100% - 10px), 0% 10px) !important;
     margin-top: 10px !important;
 }
-
-div[data-testid="stExpander"] div[data-baseweb="input"] button {
-    clip-path: none !important;
-    border: none !important;
-    border-image: none !important;
-    height: auto !important;
-    width: auto !important;
-}
+div[data-testid="stExpander"] div[data-baseweb="input"] button { clip-path: none !important; border: none !important; border-image: none !important; height: auto !important; width: auto !important; }
 </style>
-"""
+""", unsafe_allow_html=True)
+    else:
+        st.info("正しいパスワードを入力してください。")
