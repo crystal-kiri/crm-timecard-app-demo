@@ -147,38 +147,34 @@ div[data-testid="stSelectbox"] * {{
     100% {{ transform: scale(1); opacity: 1; }}
 }}
 
-/* 【重要】打刻用ボタン */
-.timecard-buttons div.stButton > button {{
+/* 【重要】打刻用ボタン & ログインボタン共通のサイバーCSS調整 */
+.timecard-buttons div.stButton button,
+.login-box div.stButton button {{
     width: 100% !important;
     min-width: 100% !important;
-    height: 80px !important;
+    height: 70px !important;
     background-color: transparent !important;
     color: {disp_text} !important;
     font-size: 20px !important;
-    font-weight: 500 !important;
-    border: 1px solid !important;
-    border-image: linear-gradient(90deg, #ffeb3b, #ff9800, #f44336, #e91e63, #3f51b5) 1 !important;
+    font-weight: bold !important;
+    letter-spacing: 0.1em !important;
+    border: 1px solid transparent !important;
+    background-image: linear-gradient({bg_color}, {bg_color}), linear-gradient(90deg, #ffeb3b, #ff9800, #f44336, #e91e63, #3f51b5) !important;
+    background-origin: border-box !important;
+    background-clip: padding-box, border-box !important;
     clip-path: polygon(15px 0%, calc(100% - 15px) 0%, 100% 15px, 100% calc(100% - 15px), calc(100% - 15px) 100%, 15px 100%, 0% calc(100% - 15px), 0% 15px) !important;
     border-radius: 0px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
 }}
 
-/* ログイン画面専用のサイバーボタンCSS */
-.login-btn-wrap div.stButton > button {{
-    width: 100% !important;
-    height: 65px !important;
-    background-color: transparent !important;
-    color: {disp_text} !important;
-    font-size: 18px !important;
-    font-weight: bold !important;
-    letter-spacing: 0.1em !important;
-    border: 1px solid !important;
-    border-image: linear-gradient(90deg, #ffeb3b, #ff9800, #f44336, #e91e63, #3f51b5) 1 !important;
-    clip-path: polygon(12px 0%, calc(100% - 12px) 0%, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0% calc(100% - 12px), 0% 12px) !important;
-    border-radius: 0px !important;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+.timecard-buttons div.stButton button:hover,
+.login-box div.stButton button:hover {{
+    opacity: 0.85;
+    transform: translateY(1px);
 }}
 
 div.stButton {{
@@ -191,12 +187,14 @@ div.stElementContainer, div.stButton {{
 }}
 
 /* ログイン入力フォームのラベル位置と見た目の補正 */
-.login-wrap [data-testid="stWidgetLabel"] p {{
+.login-box [data-testid="stWidgetLabel"] p {{
     color: {disp_text} !important;
-    opacity: 0.7;
+    opacity: 0.8;
     font-size: 13px !important;
+    font-weight: 600;
     letter-spacing: 0.05em;
-    margin-bottom: 4px !important;
+    margin-bottom: 6px !important;
+    text-align: left !important;
 }}
 
 /* Streamlit標準UIを隠す */
@@ -207,14 +205,15 @@ div.stElementContainer, div.stButton {{
 [data-testid="stToast"] {{ display: none !important; }}
 .stSpinner {{ display: none !important; }}
 
-/* ログイン画面用カスタムCSSボックス */
-.login-wrap {{
+/* ログイン・打刻画面を綺麗にラップするコンテナ */
+.login-box {{
     background: {box_bg};
-    padding: 30px;
+    padding: 35px 30px;
     border-radius: 24px;
     border: 1px solid rgba(255,255,255,0.08);
-    margin-top: 30px;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    margin-top: 40px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    text-align: center;
 }}
 </style>
 """, unsafe_allow_html=True)
@@ -224,16 +223,18 @@ div.stElementContainer, div.stButton {{
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown(f'<div style="color:{disp_text}; text-align:center; letter-spacing:0.2em; font-size:26px; font-weight:bold;">CRYSTAL TIME CARD</div>', unsafe_allow_html=True)
     
-    st.markdown('<div class="login-wrap">', unsafe_allow_html=True)
+    # 疑似的なHTMLコンテナ構造を作り、その中にStreamlit要素をインジェクションする手法に修正
+    st.markdown('<div class="login-box">', unsafe_allow_html=True)
+    st.markdown(f'<div style="color:{disp_text}; letter-spacing:0.2em; font-size:26px; font-weight:bold; margin-bottom: 30px;">CRYSTAL TIME CARD</div>', unsafe_allow_html=True)
+    
     input_id = st.text_input("COMPANY ID（企業ID）", placeholder="例: test01", key="login_id_input")
+    st.markdown("<br>", unsafe_allow_html=True)
     input_pw = st.text_input("PASSWORD（パスワード）", type="password", placeholder="••••••••", key="login_pw_input")
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div class="login-btn-wrap">', unsafe_allow_html=True)
+    st.markdown("<br><br>", unsafe_allow_html=True)
     login_clicked = st.button("LOG IN", key="login_btn")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True) # login-boxの閉じタグ
     
     if login_clicked:
         if input_id and input_pw:
@@ -252,7 +253,6 @@ if not st.session_state.logged_in:
                 st.error("システムの読み込みに失敗しました。『契約企業マスター』タブが存在するか確認してください。")
         else:
             st.warning("企業IDとパスワードの両方を入力してください。")
-    st.markdown('</div>', unsafe_allow_html=True)
     st.stop()
 
 
@@ -300,7 +300,7 @@ st.components.v1.html(f"""
             x: Math.random() * 500, y: Math.random() * 180,
             vx: (Math.random()-0.5) * 0.4, vy: (Math.random()-0.5) * 0.4,
             c: cols[Math.floor(Math.random()*5)], s: Math.random() * 2 + 1
-        }});
+        }}));
     }}
 
     function draw() {{
@@ -564,7 +564,6 @@ with c2:
             save_to_gsheets(selected_name, "退勤", selected_break)
 st.markdown('</div>', unsafe_allow_html=True)
 
-# ⚠️ ここの波括弧を完全にエスケープ {{ }} に修正しました
 balloon_spot.markdown(f"""
 <div id="live-balloon" class="balloon-msg balloon-pop">{st.session_state.msg}</div>
 <script>
@@ -572,7 +571,7 @@ balloon_spot.markdown(f"""
     const doc = window.parent.document;
     const buttons = doc.querySelectorAll('div[data-testid="stButton"] button');
     if (buttons.length >= 2) {{
-        // ボタンの全体数に合わせてJS側のイベントインデックスも調整されるよう考慮
+        // ボタンイベント制御
     }}
 }})();
 </script>
@@ -713,7 +712,7 @@ with st.expander("🛠 管理者メニュー"):
                     else:
                         target_staff = st.selectbox("スタッフを選択してください", active_staffs, key="staff_detail_select", label_visibility="collapsed")
                         
-                        staff_detail = filtered[filtered["名前"] == target_staff].copy()
+                        staff_detail = filtered[filtered["March"] == target_staff].copy() if "March" in filtered.columns else filtered[filtered["名前"] == target_staff].copy()
                         staff_detail["日付_表示"] = staff_detail["日付"].dt.strftime('%Y-%m-%d')
                         staff_detail = staff_detail.sort_values("日付", ascending=False)
                         
