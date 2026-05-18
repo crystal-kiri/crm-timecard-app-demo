@@ -147,56 +147,62 @@ div[data-testid="stSelectbox"] * {{
     100% {{ transform: scale(1); opacity: 1; }}
 }}
 
-/* 🔥 完璧なサイバーネオン・ボタンデザイン */
-div[data-testid="stButton"] button {{
+/* --- 🔴 ボタン全体の配置を「中央」に固定 --- */
+div[data-testid="stButton"] {{
+    display: flex !important;
+    justify-content: center !important;
     width: 100% !important;
-    min-width: 100% !important;
+    margin: 15px 0 !important;
+}}
+
+/* --- 🔵 ボタン単体のデザイン：昼夜の背景に完全同期 --- */
+div[data-testid="stButton"] button {{
+    width: 320px !important; 
     height: 60px !important;
+    margin: 0 auto !important;
+
+    /* 💡 昼夜判定（is_night）に合わせて、ボタンの中身の色を自動で変化させます */
+    background: {"linear-gradient(135deg, rgba(16, 20, 56, 0.8) 0%, rgba(7, 10, 30, 0.9) 100%)" if is_night else f"linear-gradient(135deg, rgba(255,255,255,0.9) 0%, {bg_color} 100%)"} !important;
     
-    /* 1. 背景：高級感のある超高精細・半透明ダークグラデーション */
-    background: linear-gradient(135deg, rgba(20, 24, 60, 0.85) 0%, rgba(10, 14, 38, 0.95) 100%) !important;
-    
-    /* 2. 文字：近未来感のあるクリアな発光ホワイト */
-    color: #ffffff !important;
-    font-size: 19px !important;
+    /* 文字色も昼夜で自動切り替え（disp_textに同期） */
+    color: {disp_text} !important;
+    font-size: 18px !important;
     font-weight: 700 !important;
-    letter-spacing: 0.25em !important;
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.6) !important;
+    letter-spacing: 0.3em !important;
+    text-shadow: {"0 0 10px rgba(255, 255, 255, 0.5)" if is_night else "none"} !important;
     
-    /* 3. 外枠：途切れのない、美しく極細な1pxのグラデーションネオンライン */
+    /* 外枠：極細のグラデーションライン */
     border: 1px solid transparent !important;
     background-origin: border-box !important;
     background-clip: padding-box, border-box !important;
     background-image: 
-        linear-gradient(135deg, rgba(20, 24, 60, 0.95), rgba(10, 14, 38, 0.95)), 
+        {"linear-gradient(135deg, rgba(16, 20, 56, 0.9), rgba(7, 10, 30, 0.95))" if is_night else f"linear-gradient(135deg, {bg_color}, {bg_color})"}, 
         linear-gradient(135deg, #ffeb3b, #ff9800, #e91e63, #3f51b5, #00f2fe) !important;
         
-    /* 4. 形状：本番のスマートな傾斜角（削り幅を美しく10pxに最適化） */
-    clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0% calc(100% - 10px), 0% 10px) !important;
+    /* 形状：美しい傾斜角 */
+    clip-path: polygon(12px 0%, calc(100% - 12px) 0%, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0% calc(100% - 12px), 0% 12px) !important;
     border-radius: 0px !important;
     
-    /* 5. 影：ボテッとしない、上品で広範囲なネオンの残光エフェクト */
-    box-shadow: 0 0 20px rgba(63, 81, 181, 0.25), inset 0 0 12px rgba(255, 255, 255, 0.05) !important;
+    /* 影：昼夜それぞれで不自然じゃない影の強さに調整 */
+    box-shadow: {"0 10px 30px rgba(0, 0, 0, 0.4), 0 0 15px rgba(63, 81, 181, 0.3)" if is_night else "0 8px 20px rgba(0,0,0,0.06)"} !important;
     
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
 }}
 
-/* ✨ マウスホバー：オーラのように輝きがふわっと増幅 */
+/* ✨ ホバー時：横幅が少しだけ広がり、発光が強まる */
 div[data-testid="stButton"] button:hover {{
+    width: 330px !important;
     opacity: 1 !important;
-    background: linear-gradient(135deg, rgba(25, 30, 75, 0.9) 0%, rgba(15, 20, 50, 0.98) 100%) !important;
-    box-shadow: 0 0 30px rgba(0, 242, 254, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.1) !important;
-    text-shadow: 0 0 12px rgba(255, 255, 255, 1) !important;
-    border-image: linear-gradient(135deg, #00f2fe, #4facfe) 1 !important; /* ホバー時にサイバーブルーに同調 */
+    box-shadow: 0 0 40px rgba(0, 242, 254, 0.6) !important;
+    {"text-shadow: 0 0 15px rgba(255, 255, 255, 1) !" if is_night else ""}
 }}
 
-/* ⚡️ クリック：カチッと押し込まれるメカニカルなフィードバック */
+/* ⚡️ クリック時：カチッと沈み込む */
 div[data-testid="stButton"] button:active {{
-    transform: scale(0.98) !important;
-    box-shadow: 0 0 10px rgba(0, 242, 254, 0.3) !important;
+    transform: scale(0.96) !important;
 }}
 
 /* Streamlit標準UIを非表示 */
