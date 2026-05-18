@@ -221,10 +221,9 @@ div[data-testid="stButton"] button:active {{
 if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    # 💡 st.containerを使ってHTML要素とStreamlit要素が完全に融合するようラッピング
-    login_container = st.container()
-    with login_container:
-        st.markdown(f'<div style="color:{disp_text}; text-align:center; letter-spacing:0.2em; font-size:26px; font-weight:bold; margin-bottom:10px;">CRYSTAL TIME CARD</div>', unsafe_allow_html=True)
+    # 💡 st.containerに直接キーを指定し、HTML側からピンポイントで狙い撃ちできるように変更
+    with st.container(key="login_box_container"):
+        st.markdown(f'<div style="color:{disp_text}; text-align:center; letter-spacing:0.2em; font-size:26px; font-weight:bold; margin-bottom:25px;">CRYSTAL TIME CARD</div>', unsafe_allow_html=True)
         
         input_id = st.text_input("COMPANY ID（企業ID）", placeholder="例: test01", key="login_id_input")
         input_pw = st.text_input("PASSWORD（パスワード）", type="password", placeholder="••••••••", key="login_pw_input")
@@ -232,29 +231,33 @@ if not st.session_state.logged_in:
         st.markdown("<br>", unsafe_allow_html=True)
         login_clicked = st.button("LOG IN", key="login_btn")
         
-    # JSではなく、CSS側で上記のコンテナごと丸ごと装飾するために、st.containerにクラスを付与する仕組み
-    st.markdown("""
+    # 💡 謎の空箱を出さずに、ログインコンテナ全体を綺麗に包み込むJavaScript
+    st.components.v1.html("""
         <script>
-        const elements = window.parent.document.querySelectorAll('div[data-testid="stVerticalBlock"]');
-        // ログイン画面の直近親要素コンテナを探してクラスを追加
-        for (const el of elements) {
-            if (el.querySelector('input[id="login_id_input"]')) {
-                el.classList.add('login-area');
-                break;
+        (function() {
+            const doc = window.parent.document;
+            const target = doc.querySelector('div[data-testid="stVerticalBlockBorderWrapper"]has(div[data-element-to-transition="login_box_container"])') 
+                        || doc.querySelector('div[data-key="login_box_container"]');
+            if (target) {
+                target.style.backgroundColor = "rgba(255, 255, 255, 0.05)";
+                target.style.padding = "40px 30px";
+                target.style.borderRadius = "24px";
+                target.style.border = "1px solid rgba(255,255,255,0.08)";
+                target.style.boxShadow = "0 15px 45px rgba(0,0,0,0.3)";
+                target.style.marginTop = "30px";
             }
-        }
+        })();
         </script>
-    """, unsafe_allow_html=True)
+    """, height=0)
     
     if login_clicked:
         if input_id and input_pw:
-            # 🔍 エラーの本当の原因をあぶり出すためのデバッグ処理
             try:
-                # 1. まずマスターを読み込む（書き方を最もシンプルな形に）
-                master_df = conn.read(URL, worksheet="契約企業マスター", ttl=0)
+                # ⭕️ ライブラリが確実に受け付ける正しいキーワード指定に修正
+                master_df = conn.read(spreadsheet=URL, worksheet="契約企業マスター", ttl=0)
                 
-                # 2. 読み込めたら中身を判定
-                match = master_df[(master_df["企業ID"] == input_id) & (master_df["パスワード"] == input_pw)]
+                # データの照合
+                match = master_df[(master_df["企業ID"].astype(str) == str(input_id)) & (master_df["パスワード"].astype(str) == str(input_pw))]
                 
                 if not match.empty:
                     st.session_state.logged_in = True
@@ -265,14 +268,8 @@ if not st.session_state.logged_in:
                     st.error("企業IDまたはパスワードが正しくありません。")
                     
             except Exception as e:
-                # 🔴 エラーの生データを隠さずに画面に出す
-                st.error("🚨 スプレッドシートの読み込み自体に失敗しています！")
-                st.info(f"【エラーの生データ】: {e}")
-                st.markdown("""
-                **【これが原因のことが多いです】**
-                1. 右上の「共有」で、**『リンクを知っている全員』が『閲覧者』**になっていますか？
-                2. `st.secrets` の設定（URLや認証キー）が間違っている、または反映されていない。
-                """)
+                st.error("🚨 システムの読み込みに失敗しました")
+                st.info(f"【エラー詳細】: {e}")
         else:
             st.warning("企業IDとパスワードの両方を入力してください。")
     st.stop()
