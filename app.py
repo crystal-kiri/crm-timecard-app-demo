@@ -147,54 +147,43 @@ div[data-testid="stSelectbox"] * {{
     100% {{ transform: scale(1); opacity: 1; }}
 }}
 
-/* 🔴 【最重要】打刻ボタン・ログインボタン共通：Streamlitの独自仕様を強制上書き */
-.timecard-buttons div[data-testid="stButton"] button,
-.login-area div[data-testid="stButton"] button {{
+/* 🔥 【超確実】画面上のすべての st.button を強制的にサイバーデザイン化 */
+div[data-testid="stButton"] button {{
     width: 100% !important;
     min-width: 100% !important;
-    height: 75px !important;
-    background-color: transparent !important;
-    color: {disp_text} !important;
+    height: 65px !important;
+    background-color: #070a1e !important;
+    color: #FDFBF9 !important;
     font-size: 20px !important;
     font-weight: bold !important;
-    letter-spacing: 0.12em !important;
+    letter-spacing: 0.15em !important;
     
     /* 外枠のグラデーションボーダー */
-    border: 1px solid transparent !important;
-    background-image: linear-gradient({"#101438, #070a1e" if is_night else f"{bg_color}, {bg_color}"}), linear-gradient(90deg, #ffeb3b, #ff9800, #f44336, #e91e63, #3f51b5) !important;
+    border: 2px solid transparent !important;
+    background-image: linear-gradient(#070a1e, #070a1e), linear-gradient(90deg, #ffeb3b, #ff9800, #f44336, #e91e63, #3f51b5) !important;
     background-origin: border-box !important;
     background-clip: padding-box, border-box !important;
     
     /* メカニカルな角削り */
-    clip-path: polygon(16px 0%, calc(100% - 16px) 0%, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0% calc(100% - 16px), 0% 16px) !important;
+    clip-path: polygon(14px 0%, calc(100% - 14px) 0%, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0% calc(100% - 14px), 0% 14px) !important;
     border-radius: 0px !important;
     
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.3) !important;
+    box-shadow: 0 0 15px rgba(233, 30, 99, 0.2) !important;
     transition: all 0.15s ease-in-out !important;
-}}
+    cursor: pointer !important;
+}
 
-.timecard-buttons div[data-testid="stButton"] button:hover,
-.login-area div[data-testid="stButton"] button:hover {{
+/* ホバー・クリック時のエフェクト */
+div[data-testid="stButton"] button:hover {
     opacity: 0.85 !important;
-    transform: scale(0.99) !important;
-}}
+    box-shadow: 0 0 25px rgba(255, 235, 59, 0.4) !important;
+}
 
-.timecard-buttons div[data-testid="stButton"] button:active,
-.login-area div[data-testid="stButton"] button:active {{
-    transform: scale(0.97) !important;
-}}
-
-/* 入力欄のラベル調整 */
-.login-area [data-testid="stWidgetLabel"] p {{
-    color: {disp_text} !important;
-    opacity: 0.85;
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.05em;
-    margin-bottom: 6px !important;
+div[data-testid="stButton"] button:active {
+    transform: scale(0.98) !important;
 }}
 
 /* 🟢 【コンテナ化】ログイン画面全体を一つの綺麗なサイバーボックスにするためのラッパー */
