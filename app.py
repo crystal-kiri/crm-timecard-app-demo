@@ -216,60 +216,50 @@ div[data-testid="stButton"] button:active {{
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🔑 顧客ログイン判定処理
+# 🔑 顧客ログイン判定処理（最安定・確定版）
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    # 💡 st.containerに直接キーを指定し、HTML側からピンポイントで狙い撃ちできるように変更
-    with st.container(key="login_box_container"):
-        st.markdown(f'<div style="color:{disp_text}; text-align:center; letter-spacing:0.2em; font-size:26px; font-weight:bold; margin-bottom:25px;">CRYSTAL TIME CARD</div>', unsafe_allow_html=True)
-        
-        input_id = st.text_input("COMPANY ID（企業ID）", placeholder="例: test01", key="login_id_input")
-        input_pw = st.text_input("PASSWORD（パスワード）", type="password", placeholder="••••••••", key="login_pw_input")
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        login_clicked = st.button("LOG IN", key="login_btn")
-        
-    # 💡 謎の空箱を出さずに、ログインコンテナ全体を綺麗に包み込むJavaScript
-    st.components.v1.html("""
-        <script>
-        (function() {
-            const doc = window.parent.document;
-            const target = doc.querySelector('div[data-testid="stVerticalBlockBorderWrapper"]has(div[data-element-to-transition="login_box_container"])') 
-                        || doc.querySelector('div[data-key="login_box_container"]');
-            if (target) {
-                target.style.backgroundColor = "rgba(255, 255, 255, 0.05)";
-                target.style.padding = "40px 30px";
-                target.style.borderRadius = "24px";
-                target.style.border = "1px solid rgba(255,255,255,0.08)";
-                target.style.boxShadow = "0 15px 45px rgba(0,0,0,0.3)";
-                target.style.marginTop = "30px";
-            }
-        })();
-        </script>
-    """, height=0)
+    # 💡 HTMLのdivで直接綺麗に囲み、その中に文字と入力欄を配置する最もバグの出ない手法
+    st.markdown(f"""
+    <div style="
+        background-color: {box_bg};
+        padding: 40px 30px;
+        border-radius: 24px;
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 15px 45px rgba(0,0,0,0.3);
+        margin-bottom: 25px;
+    ">
+        <div style="color:{disp_text}; text-align:center; letter-spacing:0.2em; font-size:26px; font-weight:bold; margin-bottom:10px;">CRYSTAL TIME CARD</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # 入力欄とボタン
+    input_id = st.text_input("COMPANY ID（企業ID）", placeholder="例: test01", key="login_id_input")
+    input_pw = st.text_input("PASSWORD（パスワード）", type="password", placeholder="••••••••", key="login_pw_input")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    login_clicked = st.button("LOG IN", key="login_btn")
     
     if login_clicked:
         if input_id and input_pw:
-            try:
-                # ⭕️ ライブラリが確実に受け付ける正しいキーワード指定に修正
-                master_df = conn.read(spreadsheet=URL, worksheet="契約企業マスター", ttl=0)
-                
-                # データの照合
-                match = master_df[(master_df["企業ID"].astype(str) == str(input_id)) & (master_df["パスワード"].astype(str) == str(input_pw))]
-                
-                if not match.empty:
-                    st.session_state.logged_in = True
-                    st.session_state.company_id = input_id
-                    st.session_state.company_name = match.iloc[0]["企業名"]
-                    st.rerun()
-                else:
-                    st.error("企業IDまたはパスワードが正しくありません。")
-                    
-            except Exception as e:
-                st.error("🚨 システムの読み込みに失敗しました")
-                st.info(f"【エラー詳細】: {e}")
+            # 🔴 try-exceptを外して、もしエラーが出たらストレートに画面に原因を出すように修正
+            master_df = conn.read(spreadsheet=URL, worksheet="契約企業マスター", ttl=0)
+            
+            # 型の不一致を防ぐため文字列に変換して比較
+            master_df["企業ID"] = master_df["企業ID"].astype(str).str.strip()
+            master_df["パスワード"] = master_df["パスワード"].astype(str).str.strip()
+            
+            match = master_df[(master_df["企業ID"] == str(input_id).strip()) & (master_df["パスワード"] == str(input_pw).strip())]
+            
+            if not match.empty:
+                st.session_state.logged_in = True
+                st.session_state.company_id = input_id
+                st.session_state.company_name = match.iloc[0]["企業名"]
+                st.rerun()
+            else:
+                st.error("企業IDまたはパスワードが正しくありません。")
         else:
             st.warning("企業IDとパスワードの両方を入力してください。")
     st.stop()
