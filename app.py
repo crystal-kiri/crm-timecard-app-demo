@@ -147,7 +147,7 @@ div[data-testid="stSelectbox"] * {{
     100% {{ transform: scale(1); opacity: 1; }}
 }}
 
-/* 【重要】打刻用ボタン（他パーツへの干渉を防ぐためコンテナを限定） */
+/* 【重要】打刻用ボタン */
 .timecard-buttons div.stButton > button {{
     width: 100% !important;
     min-width: 100% !important;
@@ -226,13 +226,11 @@ if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown(f'<div style="color:{disp_text}; text-align:center; letter-spacing:0.2em; font-size:26px; font-weight:bold;">CRYSTAL TIME CARD</div>', unsafe_allow_html=True)
     
-    # ログインフォーム全体をラップ
     st.markdown('<div class="login-wrap">', unsafe_allow_html=True)
     input_id = st.text_input("COMPANY ID（企業ID）", placeholder="例: test01", key="login_id_input")
     input_pw = st.text_input("PASSWORD（パスワード）", type="password", placeholder="••••••••", key="login_pw_input")
     
     st.markdown("<br>", unsafe_allow_html=True)
-    # ボタン専用のクラスコンテナで包んで干渉を防ぐ
     st.markdown('<div class="login-btn-wrap">', unsafe_allow_html=True)
     login_clicked = st.button("LOG IN", key="login_btn")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -546,7 +544,6 @@ selected_break = break_slider(
 
 balloon_spot = st.empty()
 
-# 打刻用ボタンを .timecard-buttons でラップしてスタイルを独立させる
 st.markdown('<div class="timecard-buttons">', unsafe_allow_html=True)
 c1, c2 = st.columns(2)
 
@@ -567,15 +564,16 @@ with c2:
             save_to_gsheets(selected_name, "退勤", selected_break)
 st.markdown('</div>', unsafe_allow_html=True)
 
+# ⚠️ ここの波括弧を完全にエスケープ {{ }} に修正しました
 balloon_spot.markdown(f"""
 <div id="live-balloon" class="balloon-msg balloon-pop">{st.session_state.msg}</div>
 <script>
 (function() {{
     const doc = window.parent.document;
     const buttons = doc.querySelectorAll('div[data-testid="stButton"] button');
-    if (buttons.length >= 2) {
+    if (buttons.length >= 2) {{
         // ボタンの全体数に合わせてJS側のイベントインデックスも調整されるよう考慮
-    }
+    }}
 }})();
 </script>
 """, unsafe_allow_html=True)
@@ -655,7 +653,7 @@ with st.expander("🛠 管理者メニュー"):
                                     df_m = pd.DataFrame([{"名前": "【テスト用】スタッフを追加してください"}])
                                 conn.update(spreadsheet=URL, worksheet=staff_tab_name, data=df_m)
                                 st.session_state.delete_confirm = False
-                                rerun()
+                                st.rerun()
 
                         with col_no:
                             if st.button("キャンセル", key="admin_del_cancel"):
