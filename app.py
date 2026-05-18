@@ -147,74 +147,73 @@ div[data-testid="stSelectbox"] * {{
     100% {{ transform: scale(1); opacity: 1; }}
 }}
 
-/* 【重要】打刻用ボタン & ログインボタン共通のサイバーCSS調整 */
-.timecard-buttons div.stButton button,
-.login-box div.stButton button {{
+/* 🔴 【最重要】打刻ボタン・ログインボタン共通：Streamlitの独自仕様を強制上書き */
+.timecard-buttons div[data-testid="stButton"] button,
+.login-area div[data-testid="stButton"] button {{
     width: 100% !important;
     min-width: 100% !important;
-    height: 70px !important;
+    height: 75px !important;
     background-color: transparent !important;
     color: {disp_text} !important;
     font-size: 20px !important;
     font-weight: bold !important;
-    letter-spacing: 0.1em !important;
+    letter-spacing: 0.12em !important;
+    
+    /* 外枠のグラデーションボーダー */
     border: 1px solid transparent !important;
-    background-image: linear-gradient({bg_color}, {bg_color}), linear-gradient(90deg, #ffeb3b, #ff9800, #f44336, #e91e63, #3f51b5) !important;
+    background-image: linear-gradient({"#101438, #070a1e" if is_night else f"{bg_color}, {bg_color}"}), linear-gradient(90deg, #ffeb3b, #ff9800, #f44336, #e91e63, #3f51b5) !important;
     background-origin: border-box !important;
     background-clip: padding-box, border-box !important;
-    clip-path: polygon(15px 0%, calc(100% - 15px) 0%, 100% 15px, 100% calc(100% - 15px), calc(100% - 15px) 100%, 15px 100%, 0% calc(100% - 15px), 0% 15px) !important;
+    
+    /* メカニカルな角削り */
+    clip-path: polygon(16px 0%, calc(100% - 16px) 0%, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0% calc(100% - 16px), 0% 16px) !important;
     border-radius: 0px !important;
+    
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3) !important;
+    transition: all 0.15s ease-in-out !important;
 }}
 
-.timecard-buttons div.stButton button:hover,
-.login-box div.stButton button:hover {{
-    opacity: 0.85;
-    transform: translateY(1px);
+.timecard-buttons div[data-testid="stButton"] button:hover,
+.login-area div[data-testid="stButton"] button:hover {{
+    opacity: 0.85 !important;
+    transform: scale(0.99) !important;
 }}
 
-div.stButton {{
-    width: 100% !important;
+.timecard-buttons div[data-testid="stButton"] button:active,
+.login-area div[data-testid="stButton"] button:active {{
+    transform: scale(0.97) !important;
 }}
 
-div.stElementContainer, div.stButton {{
-    width: 100% !important;
-    display: block !important;
-}}
-
-/* ログイン入力フォームのラベル位置と見た目の補正 */
-.login-box [data-testid="stWidgetLabel"] p {{
+/* 入力欄のラベル調整 */
+.login-area [data-testid="stWidgetLabel"] p {{
     color: {disp_text} !important;
-    opacity: 0.8;
+    opacity: 0.85;
     font-size: 13px !important;
-    font-weight: 600;
+    font-weight: 600 !important;
     letter-spacing: 0.05em;
     margin-bottom: 6px !important;
-    text-align: left !important;
 }}
 
-/* Streamlit標準UIを隠す */
+/* 🟢 【コンテナ化】ログイン画面全体を一つの綺麗なサイバーボックスにするためのラッパー */
+div.login-area {{
+    background-color: {box_bg} !important;
+    padding: 40px 30px !important;
+    border-radius: 24px !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    box-shadow: 0 15px 45px rgba(0,0,0,0.3) !important;
+    margin-top: 50px !important;
+}}
+
+/* Streamlit標準UIを非表示 */
 [data-testid="stStatusWidget"] {{ display: none !important; }}
 [data-testid="stDecoration"] {{ display: none !important; }}
 [data-testid="stToolbar"] {{ display: none !important; }}
 [data-testid="stHeader"] {{ display: none !important; }}
 [data-testid="stToast"] {{ display: none !important; }}
 .stSpinner {{ display: none !important; }}
-
-/* ログイン・打刻画面を綺麗にラップするコンテナ */
-.login-box {{
-    background: {box_bg};
-    padding: 35px 30px;
-    border-radius: 24px;
-    border: 1px solid rgba(255,255,255,0.08);
-    margin-top: 40px;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
-    text-align: center;
-}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -224,17 +223,30 @@ div.stElementContainer, div.stButton {{
 if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    # 疑似的なHTMLコンテナ構造を作り、その中にStreamlit要素をインジェクションする手法に修正
-    st.markdown('<div class="login-box">', unsafe_allow_html=True)
-    st.markdown(f'<div style="color:{disp_text}; letter-spacing:0.2em; font-size:26px; font-weight:bold; margin-bottom: 30px;">CRYSTAL TIME CARD</div>', unsafe_allow_html=True)
-    
-    input_id = st.text_input("COMPANY ID（企業ID）", placeholder="例: test01", key="login_id_input")
-    st.markdown("<br>", unsafe_allow_html=True)
-    input_pw = st.text_input("PASSWORD（パスワード）", type="password", placeholder="••••••••", key="login_pw_input")
-    
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    login_clicked = st.button("LOG IN", key="login_btn")
-    st.markdown('</div>', unsafe_allow_html=True) # login-boxの閉じタグ
+    # 💡 st.containerを使ってHTML要素とStreamlit要素が完全に融合するようラッピング
+    login_container = st.container()
+    with login_container:
+        st.markdown(f'<div style="color:{disp_text}; text-align:center; letter-spacing:0.2em; font-size:26px; font-weight:bold; margin-bottom:10px;">CRYSTAL TIME CARD</div>', unsafe_allow_html=True)
+        
+        input_id = st.text_input("COMPANY ID（企業ID）", placeholder="例: test01", key="login_id_input")
+        input_pw = st.text_input("PASSWORD（パスワード）", type="password", placeholder="••••••••", key="login_pw_input")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        login_clicked = st.button("LOG IN", key="login_btn")
+        
+    # JSではなく、CSS側で上記のコンテナごと丸ごと装飾するために、st.containerにクラスを付与する仕組み
+    st.markdown("""
+        <script>
+        const elements = window.parent.document.querySelectorAll('div[data-testid="stVerticalBlock"]');
+        // ログイン画面の直近親要素コンテナを探してクラスを追加
+        for (const el of elements) {
+            if (el.querySelector('input[id="login_id_input"]')) {
+                el.classList.add('login-area');
+                break;
+            }
+        }
+        </script>
+    """, unsafe_allow_html=True)
     
     if login_clicked:
         if input_id and input_pw:
@@ -566,15 +578,6 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 balloon_spot.markdown(f"""
 <div id="live-balloon" class="balloon-msg balloon-pop">{st.session_state.msg}</div>
-<script>
-(function() {{
-    const doc = window.parent.document;
-    const buttons = doc.querySelectorAll('div[data-testid="stButton"] button');
-    if (buttons.length >= 2) {{
-        // ボタンイベント制御
-    }}
-}})();
-</script>
 """, unsafe_allow_html=True)
 
 
@@ -652,7 +655,7 @@ with st.expander("🛠 管理者メニュー"):
                                     df_m = pd.DataFrame([{"名前": "【テスト用】スタッフを追加してください"}])
                                 conn.update(spreadsheet=URL, worksheet=staff_tab_name, data=df_m)
                                 st.session_state.delete_confirm = False
-                                st.rerun()
+                                r.rerun()
 
                         with col_no:
                             if st.button("キャンセル", key="admin_del_cancel"):
@@ -712,7 +715,7 @@ with st.expander("🛠 管理者メニュー"):
                     else:
                         target_staff = st.selectbox("スタッフを選択してください", active_staffs, key="staff_detail_select", label_visibility="collapsed")
                         
-                        staff_detail = filtered[filtered["March"] == target_staff].copy() if "March" in filtered.columns else filtered[filtered["名前"] == target_staff].copy()
+                        staff_detail = filtered[filtered["名前"] == target_staff].copy()
                         staff_detail["日付_表示"] = staff_detail["日付"].dt.strftime('%Y-%m-%d')
                         staff_detail = staff_detail.sort_values("日付", ascending=False)
                         
