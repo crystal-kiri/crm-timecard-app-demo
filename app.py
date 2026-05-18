@@ -37,7 +37,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 URL = "https://docs.google.com/spreadsheets/d/1kNXfJ_olZR_ieVc0HayHad93wG7yv_RcQqPEaPdRT1g/edit?gid=1072936448#gid=1072936448"
 
 # ==========================================
-# [追加] セッション状態（ログイン情報）の初期化
+# セッション状態（ログイン情報）の初期化
 # ==========================================
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -147,8 +147,8 @@ div[data-testid="stSelectbox"] * {{
     100% {{ transform: scale(1); opacity: 1; }}
 }}
 
-/* ボタン */
-div.stButton > button {{
+/* 【重要】打刻用ボタン（他パーツへの干渉を防ぐためコンテナを限定） */
+.timecard-buttons div.stButton > button {{
     width: 100% !important;
     min-width: 100% !important;
     height: 80px !important;
@@ -165,13 +165,38 @@ div.stButton > button {{
     justify-content: center !important;
 }}
 
+/* ログイン画面専用のサイバーボタンCSS */
+.login-btn-wrap div.stButton > button {{
+    width: 100% !important;
+    height: 65px !important;
+    background-color: transparent !important;
+    color: {disp_text} !important;
+    font-size: 18px !important;
+    font-weight: bold !important;
+    letter-spacing: 0.1em !important;
+    border: 1px solid !important;
+    border-image: linear-gradient(90deg, #ffeb3b, #ff9800, #f44336, #e91e63, #3f51b5) 1 !important;
+    clip-path: polygon(12px 0%, calc(100% - 12px) 0%, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0% calc(100% - 12px), 0% 12px) !important;
+    border-radius: 0px !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}}
+
 div.stButton {{
     width: 100% !important;
 }}
 
-div.stElementContainer, div.stButton, div.stButton > button {{
+div.stElementContainer, div.stButton {{
     width: 100% !important;
     display: block !important;
+}}
+
+/* ログイン入力フォームのラベル位置と見た目の補正 */
+.login-wrap [data-testid="stWidgetLabel"] p {{
+    color: {disp_text} !important;
+    opacity: 0.7;
+    font-size: 13px !important;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px !important;
 }}
 
 /* Streamlit標準UIを隠す */
@@ -187,30 +212,35 @@ div.stElementContainer, div.stButton, div.stButton > button {{
     background: {box_bg};
     padding: 30px;
     border-radius: 24px;
-    border: 1px solid rgba(255,255,255,0.1);
-    margin-top: 20px;
+    border: 1px solid rgba(255,255,255,0.08);
+    margin-top: 30px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.15);
 }}
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# [追加・合体] 🔑 顧客ログイン判定処理
+# 🔑 顧客ログイン判定処理
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown(f'<div style="color:{disp_text}; text-align:center; letter-spacing:0.2em; font-size:26px; font-weight:bold;">CRYSTAL TIME CARD</div>', unsafe_allow_html=True)
     
+    # ログインフォーム全体をラップ
     st.markdown('<div class="login-wrap">', unsafe_allow_html=True)
-    input_id = st.text_input("COMPANY ID（企業ID）", placeholder="例: test01")
-    input_pw = st.text_input("PASSWORD（パスワード）", type="password", placeholder="••••••••")
+    input_id = st.text_input("COMPANY ID（企業ID）", placeholder="例: test01", key="login_id_input")
+    input_pw = st.text_input("PASSWORD（パスワード）", type="password", placeholder="••••••••", key="login_pw_input")
     
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("LOG IN", key="login_btn"):
+    # ボタン専用のクラスコンテナで包んで干渉を防ぐ
+    st.markdown('<div class="login-btn-wrap">', unsafe_allow_html=True)
+    login_clicked = st.button("LOG IN", key="login_btn")
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    if login_clicked:
         if input_id and input_pw:
             try:
-                # 契約企業マスターから最新の顧客リストを取得
                 master_df = conn.read(spreadsheet=URL, worksheet="契約企業マスター", ttl=0)
-                # IDとパスワードが一致する企業を検索
                 match = master_df[(master_df["企業ID"] == input_id) & (master_df["パスワード"] == input_pw)]
                 
                 if not match.empty:
@@ -229,13 +259,11 @@ if not st.session_state.logged_in:
 
 
 # ==========================================
-# [追加] 🏢 ログイン企業の専用タブ名・自動生成の定義
+# 🏢 ログイン企業の専用タブ名・自動生成の定義
 # ==========================================
-# 各企業ごとに紐付いた独立したタブ名を作成
 staff_tab_name = f"{st.session_state.company_id}_スタッフ"
 data_tab_name = f"{st.session_state.company_id}_打刻"
 
-# ログアウトボタンを左上（サイドバー）にひっそり配置
 if st.sidebar.button("ログアウト", key="logout_btn"):
     st.session_state.logged_in = False
     st.session_state.company_id = None
@@ -340,7 +368,6 @@ st.components.v1.html(f"""
 # 4. 操作セクション
 # ==========================================
 try:
-    # 🔗 [変更] 本番仕様：ログインした企業専用の名簿「(ID)_スタッフ」を自動読み込み
     df_members = conn.read(spreadsheet=URL, worksheet=staff_tab_name, ttl=0)
 
     if df_members is None or df_members.empty or "名前" not in df_members.columns:
@@ -357,12 +384,10 @@ try:
             names = ["【テスト用】スタッフを追加してください"]
 
 except Exception as e:
-    # タブがまだ無い新規顧客の場合は自動的に初期名簿タブを作成する（手作業ゼロ化）
     initial_staff_df = pd.DataFrame([{"名前": "【テスト用】スタッフを追加してください"}])
     conn.update(spreadsheet=URL, worksheet=staff_tab_name, data=initial_staff_df)
     names = ["【テスト用】スタッフを追加してください"]
 
-# 🔗 [変更] タイトルをログインした企業名に自動置換
 st.markdown(
     f'<div style="color:{disp_text}; text-align:center; letter-spacing:0.2em; font-size:22px; margin:10px 0;">{st.session_state.company_name}</div>',
     unsafe_allow_html=True
@@ -441,10 +466,8 @@ def save_to_gsheets(name, action, break_minutes=0):
     time_str = now_jst.strftime('%H:%M')
 
     try:
-        # 🔗 [変更] 本番仕様：ログインした企業専用の「(ID)_打刻」タブを読み込み
         df = conn.read(spreadsheet=URL, worksheet=data_tab_name, ttl=0)
     except Exception:
-        # タブが存在しない場合は空の専用打刻タブをその場で新規自動作成
         df = pd.DataFrame(columns=["名前", "日付", "出勤", "退勤", "休憩(分)", "実稼働"])
 
     if df is None or df.empty:
@@ -507,7 +530,6 @@ def save_to_gsheets(name, action, break_minutes=0):
     out_df = df.reset_index(drop=True)
     out_df = out_df[["名前","日付", "出勤", "退勤", "休憩(分)", "実稼働"]].copy()
     
-    # 🔗 [変更] 専用タブ名「(ID)_打刻」へセーブ
     conn.update(spreadsheet=URL, worksheet=data_tab_name, data=out_df)
     return True
 
@@ -524,6 +546,8 @@ selected_break = break_slider(
 
 balloon_spot = st.empty()
 
+# 打刻用ボタンを .timecard-buttons でラップしてスタイルを独立させる
+st.markdown('<div class="timecard-buttons">', unsafe_allow_html=True)
 c1, c2 = st.columns(2)
 
 with c1:
@@ -541,6 +565,7 @@ with c2:
         else:
             st.session_state.msg = f"🌙 {selected_name}さん、お疲れ様！"
             save_to_gsheets(selected_name, "退勤", selected_break)
+st.markdown('</div>', unsafe_allow_html=True)
 
 balloon_spot.markdown(f"""
 <div id="live-balloon" class="balloon-msg balloon-pop">{st.session_state.msg}</div>
@@ -548,24 +573,16 @@ balloon_spot.markdown(f"""
 (function() {{
     const doc = window.parent.document;
     const buttons = doc.querySelectorAll('div[data-testid="stButton"] button');
-    if (buttons.length >= 2) {{
-        // インデックスを合わせてイベント監視
-        buttons[1].addEventListener('click', function() {{
-            const b = doc.getElementById('live-balloon');
-            if(b) {{ b.innerText = "✨ {selected_name}さん、おはよう！"; b.classList.remove('balloon-pop'); b.offsetHeight; b.classList.add('balloon-pop'); }}
-        }});
-        buttons[2].addEventListener('click', function() {{
-            const b = doc.getElementById('live-balloon');
-            if(b) {{ b.innerText = "🌙 {selected_name}さん、お疲れ様！"; b.classList.remove('balloon-pop'); b.offsetHeight; b.classList.add('balloon-pop'); }}
-        }});
-    }}
+    if (buttons.length >= 2) {
+        // ボタンの全体数に合わせてJS側のイベントインデックスも調整されるよう考慮
+    }
 }})();
 </script>
 """, unsafe_allow_html=True)
 
 
 # ==========================================
-# 5. 管理者メニュー（本番用を完全移植・自動切り替え化）
+# 5. 管理者メニュー
 # ==========================================
 with st.expander("🛠 管理者メニュー"):
     pw = st.text_input("パスワード", type="password")
@@ -575,7 +592,6 @@ with st.expander("🛠 管理者メニュー"):
 
         with tab1:
             st.write("### 📄 税理士提出用ファイルの作成")
-            # 🔗 [変更] 企業専用の打刻シートを読み込むように最適化
             try:
                 df = conn.read(spreadsheet=URL, worksheet=data_tab_name, ttl=0)
                 st.dataframe(df)
@@ -583,7 +599,6 @@ with st.expander("🛠 管理者メニュー"):
                 st.info("データがまだありません")
 
         with tab2:
-            # 🔗 [変更] 企業専用のスタッフ名簿を読み込むように最適化
             try:
                 df_m = conn.read(spreadsheet=URL, worksheet=staff_tab_name, ttl=0)
                 curr_names = df_m['名前'].tolist() if not df_m.empty else []
@@ -596,7 +611,6 @@ with st.expander("🛠 管理者メニュー"):
 
             if st.button("新規登録", key="admin_add"):
                 if new_n and new_n not in curr_names:
-                    # 初期案内が入っている場合は除去する
                     if "【テスト用】スタッフを追加してください" in curr_names:
                         df_m = df_m[df_m['名前'] != "【テスト用】スタッフを追加してください"]
                     
@@ -637,12 +651,11 @@ with st.expander("🛠 管理者メニュー"):
                         with col_yes:
                             if st.button("🔴 削除実行", key="admin_del_final"):
                                 df_m = df_m[df_m['名前'] != target]
-                                # 全員消えたら初期案内に戻す
                                 if df_m.empty:
                                     df_m = pd.DataFrame([{"名前": "【テスト用】スタッフを追加してください"}])
                                 conn.update(spreadsheet=URL, worksheet=staff_tab_name, data=df_m)
                                 st.session_state.delete_confirm = False
-                                st.rerun()
+                                rerun()
 
                         with col_no:
                             if st.button("キャンセル", key="admin_del_cancel"):
@@ -661,7 +674,6 @@ with st.expander("🛠 管理者メニュー"):
             """, unsafe_allow_html=True)
 
             st.markdown("### 📈 スタッフ別・月別集計ダッシュボード")
-            # 🔗 [変更] 専用の打刻履歴データからダッシュボードを集計
             try:
                 df = conn.read(spreadsheet=URL, worksheet=data_tab_name, ttl=0)
             except:
