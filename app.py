@@ -249,7 +249,7 @@ if not st.session_state.logged_in:
     if login_clicked:
         if input_id and input_pw:
             try:
-                master_df = conn.read(spreadsheet=URL, worksheet="契約企業マスター", ttl=0)
+                master_df = conn.read(URL, worksheet="契約企業マスター", ttl=0)
                 match = master_df[(master_df["企業ID"] == input_id) & (master_df["パスワード"] == input_pw)]
                 
                 if not match.empty:
