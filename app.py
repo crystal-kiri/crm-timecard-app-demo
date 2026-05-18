@@ -34,7 +34,7 @@ secrets["private_key"] = secrets["private_key"].replace("\\n", "\n")
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 # 🔗 ここを「デモ用スプレッドシートのURL」に書き換える！
-URL = "https://docs.google.com/spreadsheets/"
+URL = "https://docs.google.com/spreadsheets/d/1kNXfJ_olZR_ieVc0HayHad93wG7yv_RcQqPEaPdRT1g/edit?gid=0#gid=0"
 
 
 # ==========================================
