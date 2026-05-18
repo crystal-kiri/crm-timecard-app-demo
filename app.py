@@ -147,43 +147,56 @@ div[data-testid="stSelectbox"] * {{
     100% {{ transform: scale(1); opacity: 1; }}
 }}
 
-/* 🔥 【超確実】画面上のすべての st.button を強制的にサイバーデザイン化 */
+/* 🔥 完璧なサイバーネオン・ボタンデザイン */
 div[data-testid="stButton"] button {{
     width: 100% !important;
     min-width: 100% !important;
-    height: 65px !important;
-    background-color: #070a1e !important;
-    color: #FDFBF9 !important;
-    font-size: 20px !important;
-    font-weight: bold !important;
-    letter-spacing: 0.15em !important;
+    height: 60px !important;
     
-    /* 外枠のグラデーションボーダー */
-    border: 2px solid transparent !important;
-    background-image: linear-gradient(#070a1e, #070a1e), linear-gradient(90deg, #ffeb3b, #ff9800, #f44336, #e91e63, #3f51b5) !important;
+    /* 1. 背景：高級感のある超高精細・半透明ダークグラデーション */
+    background: linear-gradient(135deg, rgba(20, 24, 60, 0.85) 0%, rgba(10, 14, 38, 0.95) 100%) !important;
+    
+    /* 2. 文字：近未来感のあるクリアな発光ホワイト */
+    color: #ffffff !important;
+    font-size: 19px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.25em !important;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.6) !important;
+    
+    /* 3. 外枠：途切れのない、美しく極細な1pxのグラデーションネオンライン */
+    border: 1px solid transparent !important;
     background-origin: border-box !important;
     background-clip: padding-box, border-box !important;
-    
-    /* メカニカルな角削り */
-    clip-path: polygon(14px 0%, calc(100% - 14px) 0%, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0% calc(100% - 14px), 0% 14px) !important;
+    background-image: 
+        linear-gradient(135deg, rgba(20, 24, 60, 0.95), rgba(10, 14, 38, 0.95)), 
+        linear-gradient(135deg, #ffeb3b, #ff9800, #e91e63, #3f51b5, #00f2fe) !important;
+        
+    /* 4. 形状：本番のスマートな傾斜角（削り幅を美しく10pxに最適化） */
+    clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0% calc(100% - 10px), 0% 10px) !important;
     border-radius: 0px !important;
+    
+    /* 5. 影：ボテッとしない、上品で広範囲なネオンの残光エフェクト */
+    box-shadow: 0 0 20px rgba(63, 81, 181, 0.25), inset 0 0 12px rgba(255, 255, 255, 0.05) !important;
     
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    box-shadow: 0 0 15px rgba(233, 30, 99, 0.2) !important;
-    transition: all 0.15s ease-in-out !important;
-    cursor: pointer !important;
+    transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
 }}
 
-/* ホバー・クリック時のエフェクト */
+/* ✨ マウスホバー：オーラのように輝きがふわっと増幅 */
 div[data-testid="stButton"] button:hover {{
-    opacity: 0.85 !important;
-    box-shadow: 0 0 25px rgba(255, 235, 59, 0.4) !important;
+    opacity: 1 !important;
+    background: linear-gradient(135deg, rgba(25, 30, 75, 0.9) 0%, rgba(15, 20, 50, 0.98) 100%) !important;
+    box-shadow: 0 0 30px rgba(0, 242, 254, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.1) !important;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 1) !important;
+    border-image: linear-gradient(135deg, #00f2fe, #4facfe) 1 !important; /* ホバー時にサイバーブルーに同調 */
 }}
 
+/* ⚡️ クリック：カチッと押し込まれるメカニカルなフィードバック */
 div[data-testid="stButton"] button:active {{
     transform: scale(0.98) !important;
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.3) !important;
 }}
 
 /* Streamlit標準UIを非表示 */
