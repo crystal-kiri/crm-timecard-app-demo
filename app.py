@@ -174,26 +174,16 @@ div[data-testid="stButton"] button {{
     box-shadow: 0 0 15px rgba(233, 30, 99, 0.2) !important;
     transition: all 0.15s ease-in-out !important;
     cursor: pointer !important;
-}
-
-/* ホバー・クリック時のエフェクト */
-div[data-testid="stButton"] button:hover {
-    opacity: 0.85 !important;
-    box-shadow: 0 0 25px rgba(255, 235, 59, 0.4) !important;
-}
-
-div[data-testid="stButton"] button:active {
-    transform: scale(0.98) !important;
 }}
 
-/* 🟢 【コンテナ化】ログイン画面全体を一つの綺麗なサイバーボックスにするためのラッパー */
-div.login-area {{
-    background-color: {box_bg} !important;
-    padding: 40px 30px !important;
-    border-radius: 24px !important;
-    border: 1px solid rgba(255,255,255,0.08) !important;
-    box-shadow: 0 15px 45px rgba(0,0,0,0.3) !important;
-    margin-top: 50px !important;
+/* ホバー・クリック時のエフェクト */
+div[data-testid="stButton"] button:hover {{
+    opacity: 0.85 !important;
+    box-shadow: 0 0 25px rgba(255, 235, 59, 0.4) !important;
+}}
+
+div[data-testid="stButton"] button:active {{
+    transform: scale(0.98) !important;
 }}
 
 /* Streamlit標準UIを非表示 */
