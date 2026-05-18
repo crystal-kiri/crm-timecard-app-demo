@@ -34,8 +34,17 @@ secrets["private_key"] = secrets["private_key"].replace("\\n", "\n")
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 # 🔗 ここを「デモ用スプレッドシートのURL」に書き換える！
-URL = "https://docs.google.com/spreadsheets/d/1kNXfJ_olZR_ieVc0HayHad93wG7yv_RcQqPEaPdRT1g/edit?gid=0#gid=0"
+URL = "https://docs.google.com/spreadsheets/d/1kNXfJ_olZR_ieVc0HayHad93wG7yv_RcQqPEaPdRT1g/edit?gid=1072936448#gid=1072936448"
 
+# ==========================================
+# [追加] セッション状態（ログイン情報）の初期化
+# ==========================================
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+if "company_id" not in st.session_state:
+    st.session_state.company_id = None
+if "company_name" not in st.session_state:
+    st.session_state.company_name = None
 
 # ==========================================
 # 2. CSSデザイン (ボタン・メッセージ・全体)
@@ -172,8 +181,67 @@ div.stElementContainer, div.stButton, div.stButton > button {{
 [data-testid="stHeader"] {{ display: none !important; }}
 [data-testid="stToast"] {{ display: none !important; }}
 .stSpinner {{ display: none !important; }}
+
+/* ログイン画面用カスタムCSSボックス */
+.login-wrap {{
+    background: {box_bg};
+    padding: 30px;
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.1);
+    margin-top: 20px;
+}}
 </style>
 """, unsafe_allow_html=True)
+
+# ==========================================
+# [追加・合体] 🔑 顧客ログイン判定処理
+# ==========================================
+if not st.session_state.logged_in:
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown(f'<div style="color:{disp_text}; text-align:center; letter-spacing:0.2em; font-size:26px; font-weight:bold;">CRYSTAL TIME CARD</div>', unsafe_allow_html=True)
+    
+    st.markdown('<div class="login-wrap">', unsafe_allow_html=True)
+    input_id = st.text_input("COMPANY ID（企業ID）", placeholder="例: test01")
+    input_pw = st.text_input("PASSWORD（パスワード）", type="password", placeholder="••••••••")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("LOG IN", key="login_btn"):
+        if input_id and input_pw:
+            try:
+                # 契約企業マスターから最新の顧客リストを取得
+                master_df = conn.read(spreadsheet=URL, worksheet="契約企業マスター", ttl=0)
+                # IDとパスワードが一致する企業を検索
+                match = master_df[(master_df["企業ID"] == input_id) & (master_df["パスワード"] == input_pw)]
+                
+                if not match.empty:
+                    st.session_state.logged_in = True
+                    st.session_state.company_id = input_id
+                    st.session_state.company_name = match.iloc[0]["企業名"]
+                    st.rerun()
+                else:
+                    st.error("企業IDまたはパスワードが正しくありません。")
+            except Exception as e:
+                st.error("システムの読み込みに失敗しました。『契約企業マスター』タブが存在するか確認してください。")
+        else:
+            st.warning("企業IDとパスワードの両方を入力してください。")
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.stop()
+
+
+# ==========================================
+# [追加] 🏢 ログイン企業の専用タブ名・自動生成の定義
+# ==========================================
+# 各企業ごとに紐付いた独立したタブ名を作成
+staff_tab_name = f"{st.session_state.company_id}_スタッフ"
+data_tab_name = f"{st.session_state.company_id}_打刻"
+
+# ログアウトボタンを左上（サイドバー）にひっそり配置
+if st.sidebar.button("ログアウト", key="logout_btn"):
+    st.session_state.logged_in = False
+    st.session_state.company_id = None
+    st.session_state.company_name = None
+    st.rerun()
+
 
 # ==========================================
 # 3. 時計＆星セクション
@@ -272,30 +340,31 @@ st.components.v1.html(f"""
 # 4. 操作セクション
 # ==========================================
 try:
-    df_members = conn.read(spreadsheet=URL, worksheet="スタッフ名簿", ttl=60)
+    # 🔗 [変更] 本番仕様：ログインした企業専用の名簿「(ID)_スタッフ」を自動読み込み
+    df_members = conn.read(spreadsheet=URL, worksheet=staff_tab_name, ttl=0)
 
     if df_members is None or df_members.empty or "名前" not in df_members.columns:
-        st.error("スタッフ名簿が空か、名前列がありません")
-        st.stop()
-
-    names = (
-        df_members["名前"]
-        .dropna()
-        .astype(str)
-        .str.strip()
-        .tolist()
-    )
-
-    if not names:
-        st.error("スタッフ名簿に名前がありません")
-        st.stop()
+        names = ["【テスト用】スタッフを追加してください"]
+    else:
+        names = (
+            df_members["名前"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .tolist()
+        )
+        if not names:
+            names = ["【テスト用】スタッフを追加してください"]
 
 except Exception as e:
-    st.error(f"スタッフ名簿の読み込みに失敗しました: {e}")
-    st.stop()
+    # タブがまだ無い新規顧客の場合は自動的に初期名簿タブを作成する（手作業ゼロ化）
+    initial_staff_df = pd.DataFrame([{"名前": "【テスト用】スタッフを追加してください"}])
+    conn.update(spreadsheet=URL, worksheet=staff_tab_name, data=initial_staff_df)
+    names = ["【テスト用】スタッフを追加してください"]
 
+# 🔗 [変更] タイトルをログインした企業名に自動置換
 st.markdown(
-    f'<div style="color:{disp_text}; text-align:center; letter-spacing:0.2em; font-size:22px; margin:10px 0;">TIME CARD</div>',
+    f'<div style="color:{disp_text}; text-align:center; letter-spacing:0.2em; font-size:22px; margin:10px 0;">{st.session_state.company_name}</div>',
     unsafe_allow_html=True
 )
 
@@ -372,10 +441,11 @@ def save_to_gsheets(name, action, break_minutes=0):
     time_str = now_jst.strftime('%H:%M')
 
     try:
-        df = conn.read(spreadsheet=URL, worksheet="attendance_master", ttl=0)
+        # 🔗 [変更] 本番仕様：ログインした企業専用の「(ID)_打刻」タブを読み込み
+        df = conn.read(spreadsheet=URL, worksheet=data_tab_name, ttl=0)
     except Exception:
-        st.error(f"{name} のシートが見つかりません")
-        return False
+        # タブが存在しない場合は空の専用打刻タブをその場で新規自動作成
+        df = pd.DataFrame(columns=["名前", "日付", "出勤", "退勤", "休憩(分)", "実稼働"])
 
     if df is None or df.empty:
         df = pd.DataFrame(columns=["名前", "日付", "出勤", "退勤", "休憩(分)", "実稼働"])
@@ -437,7 +507,8 @@ def save_to_gsheets(name, action, break_minutes=0):
     out_df = df.reset_index(drop=True)
     out_df = out_df[["名前","日付", "出勤", "退勤", "休憩(分)", "実稼働"]].copy()
     
-    conn.update(spreadsheet=URL, worksheet="attendance_master", data=out_df)
+    # 🔗 [変更] 専用タブ名「(ID)_打刻」へセーブ
+    conn.update(spreadsheet=URL, worksheet=data_tab_name, data=out_df)
     return True
 
 
@@ -457,13 +528,19 @@ c1, c2 = st.columns(2)
 
 with c1:
     if st.button("出 勤", key="in"):
-        st.session_state.msg = f"✨ {selected_name}さん、おはよう！"
-        save_to_gsheets(selected_name, "出勤", selected_break)
+        if selected_name == "【テスト用】スタッフを追加してください":
+            st.warning("管理者メニューからスタッフを追加してください。")
+        else:
+            st.session_state.msg = f"✨ {selected_name}さん、おはよう！"
+            save_to_gsheets(selected_name, "出勤", selected_break)
 
 with c2:
     if st.button("退 勤", key="out"):
-        st.session_state.msg = f"🌙 {selected_name}さん、お疲れ様！"
-        save_to_gsheets(selected_name, "退勤", selected_break)
+        if selected_name == "【テスト用】スタッフを追加してください":
+            st.warning("管理者メニューからスタッフを追加してください。")
+        else:
+            st.session_state.msg = f"🌙 {selected_name}さん、お疲れ様！"
+            save_to_gsheets(selected_name, "退勤", selected_break)
 
 balloon_spot.markdown(f"""
 <div id="live-balloon" class="balloon-msg balloon-pop">{st.session_state.msg}</div>
@@ -472,11 +549,12 @@ balloon_spot.markdown(f"""
     const doc = window.parent.document;
     const buttons = doc.querySelectorAll('div[data-testid="stButton"] button');
     if (buttons.length >= 2) {{
-        buttons[0].addEventListener('click', function() {{
+        // インデックスを合わせてイベント監視
+        buttons[1].addEventListener('click', function() {{
             const b = doc.getElementById('live-balloon');
             if(b) {{ b.innerText = "✨ {selected_name}さん、おはよう！"; b.classList.remove('balloon-pop'); b.offsetHeight; b.classList.add('balloon-pop'); }}
         }});
-        buttons[1].addEventListener('click', function() {{
+        buttons[2].addEventListener('click', function() {{
             const b = doc.getElementById('live-balloon');
             if(b) {{ b.innerText = "🌙 {selected_name}さん、お疲れ様！"; b.classList.remove('balloon-pop'); b.offsetHeight; b.classList.add('balloon-pop'); }}
         }});
@@ -487,7 +565,7 @@ balloon_spot.markdown(f"""
 
 
 # ==========================================
-# 5. 管理者メニュー
+# 5. 管理者メニュー（本番用を完全移植・自動切り替え化）
 # ==========================================
 with st.expander("🛠 管理者メニュー"):
     pw = st.text_input("パスワード", type="password")
@@ -497,62 +575,81 @@ with st.expander("🛠 管理者メニュー"):
 
         with tab1:
             st.write("### 📄 税理士提出用ファイルの作成")
-            df = conn.read(spreadsheet=URL, worksheet="attendance_master", ttl=60)
-            st.dataframe(df)
+            # 🔗 [変更] 企業専用の打刻シートを読み込むように最適化
+            try:
+                df = conn.read(spreadsheet=URL, worksheet=data_tab_name, ttl=0)
+                st.dataframe(df)
+            except:
+                st.info("データがまだありません")
 
         with tab2:
-            df_m = conn.read(spreadsheet=URL, worksheet="スタッフ名簿", ttl=60)
-            curr_names = df_m['名前'].tolist()
+            # 🔗 [変更] 企業専用のスタッフ名簿を読み込むように最適化
+            try:
+                df_m = conn.read(spreadsheet=URL, worksheet=staff_tab_name, ttl=0)
+                curr_names = df_m['名前'].tolist() if not df_m.empty else []
+            except:
+                df_m = pd.DataFrame(columns=['名前'])
+                curr_names = []
 
             st.markdown("### スタッフの追加")
             new_n = st.text_input("新しい名前を入力", key="new_staff_input")
 
             if st.button("新規登録", key="admin_add"):
                 if new_n and new_n not in curr_names:
+                    # 初期案内が入っている場合は除去する
+                    if "【テスト用】スタッフを追加してください" in curr_names:
+                        df_m = df_m[df_m['名前'] != "【テスト用】スタッフを追加してください"]
+                    
                     new_staff_df = pd.DataFrame([{'名前': new_n}])
                     updated_df = pd.concat([df_m, new_staff_df], ignore_index=True)
-                    conn.update(spreadsheet=URL, worksheet="スタッフ名簿", data=updated_df)
+                    conn.update(spreadsheet=URL, worksheet=staff_tab_name, data=updated_df)
                     st.success(f"{new_n}さんを登録しました")
                     st.rerun()
 
             st.divider()
 
-            st.markdown("### 登録内容の変更・削除")
-            target = st.selectbox("対象のスタッフを選択", curr_names)
-            renamed = st.text_input("名前を修正する", value=target)
+            if curr_names and curr_names != ["【テスト用】スタッフを追加してください"]:
+                st.markdown("### 登録内容の変更・削除")
+                target = st.selectbox("対象のスタッフを選択", curr_names)
+                renamed = st.text_input("名前を修正する", value=target)
 
-            c1_admin, c2_admin = st.columns(2)
+                c1_admin, c2_admin = st.columns(2)
 
-            with c1_admin:
-                if st.button("上書き保存", key="admin_save"):
-                    df_m.loc[df_m['名前'] == target, '名前'] = renamed
-                    conn.update(spreadsheet=URL, worksheet="スタッフ名簿", data=df_m)
-                    st.success("修正しました")
-                    st.rerun()
-
-            with c2_admin:
-                if "delete_confirm" not in st.session_state:
-                    st.session_state.delete_confirm = False
-
-                if not st.session_state.delete_confirm:
-                    if st.button("この人を削除", key="admin_del_pre"):
-                        st.session_state.delete_confirm = True
+                with c1_admin:
+                    if st.button("上書き保存", key="admin_save"):
+                        df_m.loc[df_m['名前'] == target, '名前'] = renamed
+                        conn.update(spreadsheet=URL, worksheet=staff_tab_name, data=df_m)
+                        st.success("修正しました")
                         st.rerun()
-                else:
-                    st.warning(f"【確認】本当に {target} さんを消しますか？")
-                    col_yes, col_no = st.columns(2)
 
-                    with col_yes:
-                        if st.button("🔴 削除実行", key="admin_del_final"):
-                            df_m = df_m[df_m['名前'] != target]
-                            conn.update(spreadsheet=URL, worksheet="スタッフ名簿", data=df_m)
-                            st.session_state.delete_confirm = False
-                            st.rerun()
+                with c2_admin:
+                    if "delete_confirm" not in st.session_state:
+                        st.session_state.delete_confirm = False
 
-                    with col_no:
-                        if st.button("キャンセル", key="admin_del_cancel"):
-                            st.session_state.delete_confirm = False
+                    if not st.session_state.delete_confirm:
+                        if st.button("この人を削除", key="admin_del_pre"):
+                            st.session_state.delete_confirm = True
                             st.rerun()
+                    else:
+                        st.warning(f"【確認】本当に {target} さんを消しますか？")
+                        col_yes, col_no = st.columns(2)
+
+                        with col_yes:
+                            if st.button("🔴 削除実行", key="admin_del_final"):
+                                df_m = df_m[df_m['名前'] != target]
+                                # 全員消えたら初期案内に戻す
+                                if df_m.empty:
+                                    df_m = pd.DataFrame([{"名前": "【テスト用】スタッフを追加してください"}])
+                                conn.update(spreadsheet=URL, worksheet=staff_tab_name, data=df_m)
+                                st.session_state.delete_confirm = False
+                                st.rerun()
+
+                        with col_no:
+                            if st.button("キャンセル", key="admin_del_cancel"):
+                                st.session_state.delete_confirm = False
+                                st.rerun()
+            else:
+                st.info("登録されているスタッフがいません。")
 
         with tab3:
             st.markdown("""
@@ -564,7 +661,11 @@ with st.expander("🛠 管理者メニュー"):
             """, unsafe_allow_html=True)
 
             st.markdown("### 📈 スタッフ別・月別集計ダッシュボード")
-            df = conn.read(spreadsheet=URL, worksheet="attendance_master", ttl=10)
+            # 🔗 [変更] 専用の打刻履歴データからダッシュボードを集計
+            try:
+                df = conn.read(spreadsheet=URL, worksheet=data_tab_name, ttl=0)
+            except:
+                df = None
 
             if df is None or df.empty or "実稼働" not in df.columns:
                 st.info("集計するデータがまだありません")
