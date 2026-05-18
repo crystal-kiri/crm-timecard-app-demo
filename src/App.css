@@ -1,184 +1,62 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
+import React, { useState, useEffect } from 'react';
+// 素材（あとでパスを確認してね！）
+import pinkBtn from './assets/pink-btn.png';
+// 他の素材もあればここにimport
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+function App() {
+  const [time, setTime] = useState(new Date());
+
+  return (
+    <div className="min-h-screen bg-[#F2E9FB] flex items-center justify-center p-8 font-sans text-[#8A7FB1]">
+      
+      {/* 画面全体の白い大きな土台パネル */}
+      <div className="bg-white/60 backdrop-blur-xl rounded-[60px] shadow-2xl w-full max-w-6xl p-12 border-4 border-white flex flex-col gap-10">
+        
+        {/* タイトルエリア */}
+        <div className="text-center">
+          <h1 className="text-4xl font-black italic tracking-tighter">crm-timecard-app</h1>
+        </div>
+
+        {/* メインコンテンツ（上段：時計と操作エリア） */}
+        <div className="flex flex-col lg:flex-row gap-12 items-center justify-around">
+          
+          {/* 左：時計エリア */}
+          <div className="w-80 h-80 bg-white/40 rounded-full border-4 border-white shadow-inner flex flex-col items-center justify-center relative overflow-hidden">
+            {/* ここに clock-base.png を入れる予定 */}
+            <span className="text-6xl font-black text-[#5E5674]">
+              {time.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+
+          {/* 右：操作エリア（ユーザー名 ＋ ボタン） */}
+          <div className="flex flex-col gap-6 w-full max-w-md">
+            <div className="bg-white/80 p-4 rounded-3xl shadow-sm border border-white text-center font-bold text-xl">
+              yurika kiriyama
+            </div>
+            
+            <div className="flex gap-4 justify-center">
+              {/* 出勤ボタンの箱 */}
+              <button className="hover:scale-105 active:scale-95 transition-transform">
+                <img src={pinkBtn} alt="出勤" className="h-24 object-contain" />
+              </button>
+              {/* 退勤ボタンの箱（まだなければダミー） */}
+              <div className="h-24 w-40 bg-purple-200 rounded-3xl animate-pulse flex items-center justify-center text-xs">
+                退勤ボタン(待機中)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 下段：データエリア（カレンダーやグラフ） */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+          <div className="bg-white/40 h-64 rounded-[40px] border-2 border-white flex items-center justify-center italic">Weekly Record (Graph)</div>
+          <div className="bg-white/40 h-64 rounded-[40px] border-2 border-white flex items-center justify-center italic">Today's Log</div>
+          <div className="bg-white/40 h-64 rounded-[40px] border-2 border-white flex items-center justify-center italic">Calendar</div>
+        </div>
+
+      </div>
+    </div>
+  );
 }
 
-.hero {
-  position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
-}
-
-#center {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
-}
-
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
-  position: relative;
-  width: 100%;
-
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
-  }
-
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
-  }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
-  }
-}
+export default App;

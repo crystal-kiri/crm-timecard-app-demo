@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>ぴぽんタイム｜Anaheim Electronics</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&family=Playfair+Display:ital,wght@0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:     #ede8ff;
+      --purple: #5440c8;
+      --deep:   #1a1040;
+      --pink:   #e8668e;
+      --muted:  #9b93c4;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Noto Sans JP', sans-serif;
+      background: radial-gradient(ellipse at 30% 10%, #f5f2ff 0%, var(--bg) 65%);
+      display: grid;
+      grid-template-columns: 260px 1fr 260px;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #particle-canvas { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+
+    /* サイド左 */
+    .side-l {
+      z-index: 10; padding: 52px 36px;
+      display: flex; flex-direction: column;
+    }
+    .side-logo {
+      font-family: 'Playfair Display', serif; font-weight: 700;
+      font-size: 0.92rem; color: var(--purple);
+      letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.7; margin: 0;
+    }
+    .side-nav { margin-top: auto; display: flex; flex-direction: column; gap: 14px; }
+    .side-nav a {
+      font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--muted); text-decoration: none; transition: color 0.2s;
+    }
+    .side-nav a.on { color: var(--purple); font-weight: 700; }
+
+    /* サイド右 */
+    .side-r {
+      z-index: 10; padding: 52px 36px;
+      display: flex; flex-direction: column; align-items: flex-end;
+    }
+    .side-r-label {
+      font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--muted); text-align: right; line-height: 2.2;
+    }
+    .side-r-badge {
+      margin-top: auto;
+      background: rgba(255,255,255,0.65); backdrop-filter: blur(8px);
+      padding: 10px 18px; border-radius: 999px;
+      font-size: 0.62rem; font-weight: 700; color: var(--purple);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      box-shadow: 0 4px 16px rgba(84,64,200,0.1);
+    }
+
+    /* 中央カード */
+    #main-island {
+      grid-column: 2; z-index: 10;
+      background: #fff;
+      margin: 28px 0;
+      border-radius: 56px;
+      box-shadow: 0 32px 80px rgba(84,64,200,0.16), 0 1px 0 rgba(255,255,255,0.9) inset;
+      overflow-y: scroll; scrollbar-width: none;
+    }
+    #main-island::-webkit-scrollbar { display: none; }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(148deg, #f5f2ff 0%, #ede6ff 100%);
+      border-radius: 44px 44px 0 0;
+      padding: 56px 48px 0;
+      overflow: hidden;
+    }
+    .hero-kicker {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-size: 0.62rem; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--muted); margin: 0 0 28px;
+    }
+    .hero-kicker::before { content:''; width: 20px; height: 1px; background: var(--muted); }
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-style: italic; font-weight: 400;
+      font-size: clamp(2.4rem, 4vw, 3.2rem);
+      color: var(--deep); line-height: 1.2; margin: 0 0 10px;
+    }
+    .hero h1 strong { font-weight: 700; color: var(--purple); font-style: normal; display: block; }
+    .hero-sub { color: #888; font-size: 0.87rem; line-height: 1.9; margin: 0 0 36px; }
+    .hero-cta {
+      display: inline-block; background: var(--pink); color: #fff;
+      padding: 14px 32px; border-radius: 999px; font-weight: 700;
+      font-size: 0.88rem; text-decoration: none; letter-spacing: 0.04em;
+      box-shadow: 0 8px 24px rgba(232,102,142,0.4);
+      transition: transform 0.2s, box-shadow 0.2s; margin-bottom: 44px;
+    }
+    .hero-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(232,102,142,0.48); }
+    .hero-screen-wrap { perspective: 900px; text-align: center; }
+    .hero-screen {
+      display: inline-block; border-radius: 18px 18px 0 0; overflow: hidden; width: 88%;
+      box-shadow: 0 -2px 0 rgba(255,255,255,0.6), 0 20px 60px rgba(84,64,200,0.18);
+      transform: rotateX(6deg) scale(0.97); transform-origin: bottom center;
+    }
+    .hero-screen img { display: block; width: 100%; }
+
+    /* ── About ── */
+    .about {
+      padding: 64px 48px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: center;
+    }
+    .sec-label {
+      font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--muted); margin: 0 0 16px;
+    }
+    .about h2 {
+      font-family: 'Playfair Display', serif; font-style: italic; font-weight: 400;
+      font-size: 1.75rem; color: var(--deep); line-height: 1.4; margin: 0 0 16px;
+    }
+    .about p { font-size: 0.87rem; color: #777; line-height: 2; margin: 0; }
+    .about-img {
+      border-radius: 20px; overflow: hidden;
+      box-shadow: 0 16px 40px rgba(84,64,200,0.1);
+      transform: rotate(1.5deg);
+    }
+    .about-img img { display: block; width: 100%; }
+
+    /* ── Steps ── */
+    .steps { padding: 0 48px 64px; }
+    .step-row {
+      display: flex; align-items: flex-start; gap: 20px;
+      padding: 20px 0; border-top: 1px solid #f0eeff;
+    }
+    .step-row:last-child { border-bottom: 1px solid #f0eeff; }
+    .step-n {
+      font-family: 'Playfair Display', serif; font-style: italic;
+      font-size: 1.2rem; color: #c8bfff; width: 26px; flex-shrink: 0; padding-top: 3px;
+    }
+    .step-row strong { font-size: 0.9rem; color: var(--deep); }
+    .step-row p { font-size: 0.8rem; color: #888; line-height: 1.8; margin: 5px 0 0; }
+
+    /* ── CTA ── */
+    .cta {
+      margin: 0 20px 20px;
+      background: linear-gradient(140deg, var(--deep) 0%, var(--purple) 100%);
+      border-radius: 40px; padding: 52px 48px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .cta::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 25% 40%, rgba(200,191,255,0.14), transparent 60%);
+    }
+    .cta-eyebrow {
+      font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase;
+      color: rgba(255,255,255,0.4); margin: 0 0 16px;
+    }
+    .cta-price { font-size: 3rem; font-weight: 900; color: #fff; margin: 0 0 8px; line-height: 1; }
+    .cta-price sub { font-size: 0.82rem; font-weight: 300; color: rgba(255,255,255,0.45); vertical-align: middle; }
+    .cta-note-sm { font-size: 0.76rem; color: rgba(255,255,255,0.4); margin: 0 0 32px; }
+    .btn-cta {
+      display: inline-block; background: #fff; color: var(--purple);
+      padding: 16px 40px; border-radius: 999px; font-weight: 900;
+      font-size: 0.9rem; text-decoration: none;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.22);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-cta:hover { transform: translateY(-3px); box-shadow: 0 18px 44px rgba(0,0,0,0.28); }
+    .cta-fine { font-size: 0.68rem; color: rgba(255,255,255,0.28); margin: 18px 0 0; line-height: 1.9; }
+
+    footer { padding: 22px 48px 28px; text-align: center; font-size: 0.68rem; color: #ccc; }
+    footer a { color: #bbb; text-decoration: none; border-bottom: 1px solid #e8e4ff; }
+
+    /* ── ぴぽんちゃん歩き ── */
+    #pipon-walk {
+      position: fixed; bottom: 6px; z-index: 30;
+      width: 80px; pointer-events: none;
+      filter: drop-shadow(0 4px 14px rgba(84,64,200,0.2));
+      image-rendering: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="particle-canvas"></canvas>
+
+  <aside class="side-l">
+    <p class="side-logo">Anaheim<br>Electronics</p>
+    <nav class="side-nav">
+      <a href="#">Product</a>
+      <a href="#" class="on">Pippon Time</a>
+      <a href="#">About</a>
+    </nav>
+  </aside>
+
+  <main id="main-island">
+    <section class="hero">
+      <p class="hero-kicker">For small teams · 10 members</p>
+      <h1>
+        名前を選んで、<br>ポン。
+        <strong>それだけでいい。</strong>
+      </h1>
+      <p class="hero-sub">集計はスプレッドシートで自動完結。<br>設定はすべておまかせ。</p>
+      <a href="https://buy.stripe.com/your_link" class="hero-cta">初月無料で試してみる →</a>
+      <div class="hero-screen-wrap">
+        <div class="hero-screen">
+          <img src="assets/app-screen-light.png" alt="ぴぽんタイム 打刻画面">
+        </div>
+      </div>
+    </section>
+
+    <section class="about">
+      <div>
+        <p class="sec-label">Why Pippon Time</p>
+        <h2>月末の深夜、<br>電卓はもう<br>いらない。</h2>
+        <p>スタッフがポンと押すだけで、あなたのGoogleスプレッドシートに勤務時間が蓄積されます。</p>
+      </div>
+      <div class="about-img">
+        <img src="assets/app-screen.png" alt="">
+      </div>
+    </section>
+
+    <div class="steps">
+      <p class="sec-label">How it works</p>
+      <div class="step-row">
+        <div class="step-n">01</div>
+        <div><strong>Stripeで決済</strong><p>月額3,000円。初月無料、いつでも解約OK。</p></div>
+      </div>
+      <div class="step-row">
+        <div class="step-n">02</div>
+        <div><strong>設定フォーム入力</strong><p>決済後、スタッフ名等を登録するフォームが届きます。</p></div>
+      </div>
+      <div class="step-row">
+        <div class="step-n">03</div>
+        <div><strong>最短当日、運用開始</strong><p>専用URLを発行。iPadで開くだけで即運用可能です。</p></div>
+      </div>
+    </div>
+
+    <section class="cta">
+      <p class="cta-eyebrow">Get started today</p>
+      <div class="cta-price">¥3,000 <sub>/月（税別）</sub></div>
+      <p class="cta-note-sm">10名様まで同一料金 · 初期設定・導入サポート込み</p>
+      <a href="https://buy.stripe.com/your_link" class="btn-cta">ぴぽんタイムを初月無料で始める →</a>
+      <p class="cta-fine">運営：Anaheim Electronics (anaheimelectronics.jp)<br>決済完了後、24時間以内に案内メールをお送りします。</p>
+    </section>
+
+    <footer>
+      <a href="#">特定商取引法に基づく表記</a>　·　<a href="#">プライバシーポリシー</a><br>
+      © 2026 Anaheim Electronics
+    </footer>
+  </main>
+
+  <aside class="side-r">
+    <p class="side-r-label">Operated by<br>Anaheim Electronics JP</p>
+    <div class="side-r-badge">AE · 2026</div>
+  </aside>
+
+  <img id="pipon-walk" src="assets/nwalk1.png" alt="ぴぽんちゃん">
+
+  <script>
+    // ── ぴぽんちゃん歩きアニメーション ──
+    const pipon   = document.getElementById('pipon-walk');
+    const FRAMES  = 9;
+    const SPEED   = 1.4;      // px/frame
+    const FPS     = 10;       // 何フレームごとに絵を切り替えるか
+
+    let x         = 0;
+    let dir       = 1;
+    let frameIdx  = 0;
+    let ticker    = 0;
+
+    // 画像を先読み
+    const imgs = Array.from({ length: FRAMES }, (_, i) => {
+      const img = new Image();
+      img.src = `assets/nwalk${i + 1}.png`;
+      return img;
+    });
+
+    function step() {
+      const maxX = window.innerWidth - pipon.offsetWidth;
+
+      x += SPEED * dir;
+      if (x >= maxX) { x = maxX; dir = -1; }
+      if (x <= 0)    { x = 0;    dir =  1; }
+
+      ticker++;
+      if (ticker >= FPS) {
+        frameIdx = (frameIdx + 1) % FRAMES;
+        pipon.src = imgs[frameIdx].src;
+        ticker = 0;
+      }
+
+      pipon.style.left      = x + 'px';
+      pipon.style.transform = dir === -1 ? 'scaleX(-1)' : 'scaleX(1)';
+
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+
+    // ── パーティクル ──
+    const canvas = document.getElementById('particle-canvas');
+    const ctx    = canvas.getContext('2d');
+    let pts      = [];
+
+    function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+
+    function init() {
+      pts = Array.from({ length: 90 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.6 + 0.3,
+        phase: Math.random() * Math.PI * 2,
+        speed: Math.random() * 0.005 + 0.002,
+        vx: (Math.random() - 0.5) * 0.1,
+        vy: (Math.random() - 0.5) * 0.1,
+      }));
+    }
+
+    function draw(t) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      pts.forEach(p => {
+        p.x = (p.x + p.vx + canvas.width)  % canvas.width;
+        p.y = (p.y + p.vy + canvas.height) % canvas.height;
+        const a = 0.08 + 0.22 * Math.abs(Math.sin(t * p.speed + p.phase));
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(84,64,200,${a})`;
+        ctx.fill();
+      });
+      requestAnimationFrame(draw);
+    }
+
+    resize(); init(); requestAnimationFrame(draw);
+    window.addEventListener('resize', () => { resize(); init(); });
+  </script>
+
+</body>
+</html>
