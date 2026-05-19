@@ -9,7 +9,7 @@ from break_slider import break_slider
 # ==========================================
 # 1. ページ設定と時間判定
 # ==========================================
-st.set_page_config(page_title="CRYSTAL TIME CARD (DEMO)", layout="centered")
+st.set_page_config(page_title="PIPPON TIME", layout="centered")
 
 JST = timezone(timedelta(hours=+9), 'JST')
 now = datetime.now(JST)
@@ -33,8 +33,7 @@ secrets["private_key"] = secrets["private_key"].replace("\\n", "\n")
 
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# 🔗 ここを「デモ用スプレッドシートのURL」に書き換える！
-URL = "https://docs.google.com/spreadsheets/d/1kNXfJ_olZR_ieVc0HayHad93wG7yv_RcQqPEaPdRT1g/edit?gid=1072936448#gid=1072936448"
+URL = "https://docs.google.com/spreadsheets/d/1kNXfJ_olZR_ieVc0HayHad93wG7yv_RcQqPEaPdRT1g/edit?gid=594767002#gid=594767002"
 
 # ==========================================
 # セッション状態（ログイン情報）の初期化
@@ -216,7 +215,7 @@ div[data-testid="stButton"] button:active {{
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🔑 顧客ログイン判定処理（.0 小数点バグ完全消滅版）
+# 🔑 顧客ログイン判定処理
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
@@ -279,10 +278,10 @@ if not st.session_state.logged_in:
 
 
 # ==========================================
-# 🏢 ログイン企業の専用タブ名・自動生成の定義
+# 🏢 全社共通のタブ名定義
 # ==========================================
-staff_tab_name = f"{st.session_state.company_id}_スタッフ"
-data_tab_name = f"{st.session_state.company_id}_打刻"
+staff_tab_name = "全社共通_スタッフ"
+data_tab_name = "全社共通_打刻"
 
 if st.sidebar.button("ログアウト", key="logout_btn"):
     st.session_state.logged_in = False
@@ -399,7 +398,7 @@ try:
     df_members = conn.read(spreadsheet=URL, worksheet=staff_tab_name, ttl=0)
 
     if df_members is None or df_members.empty or "名前" not in df_members.columns:
-        names = ["【テスト用】スタッフを追加してください"]
+        names = ["スタッフを追加してください"]
     else:
         names = (
             df_members["名前"]
@@ -409,12 +408,12 @@ try:
             .tolist()
         )
         if not names:
-            names = ["【テスト用】スタッフを追加してください"]
+            names = ["スタッフを追加してください"]
 
 except Exception as e:
-    initial_staff_df = pd.DataFrame([{"名前": "【テスト用】スタッフを追加してください"}])
+    initial_staff_df = pd.DataFrame([{"名前": "スタッフを追加してください"}])
     conn.update(spreadsheet=URL, worksheet=staff_tab_name, data=initial_staff_df)
-    names = ["【テスト用】スタッフを追加してください"]
+    names = ["スタッフを追加してください"]
 
 st.markdown(
     f'<div style="color:{disp_text}; text-align:center; letter-spacing:0.2em; font-size:22px; margin:10px 0;">{st.session_state.company_name}</div>',
@@ -579,7 +578,7 @@ c1, c2 = st.columns(2)
 
 with c1:
     if st.button("出 勤", key="in"):
-        if selected_name == "【テスト用】スタッフを追加してください":
+        if selected_name == "スタッフを追加してください":
             st.warning("管理者メニューからスタッフを追加してください。")
         else:
             st.session_state.msg = f"✨ {selected_name}さん、おはよう！"
@@ -587,7 +586,7 @@ with c1:
 
 with c2:
     if st.button("退 勤", key="out"):
-        if selected_name == "【テスト用】スタッフを追加してください":
+        if selected_name == "スタッフを追加してください":
             st.warning("管理者メニューからスタッフを追加してください。")
         else:
             st.session_state.msg = f"🌙 {selected_name}さん、お疲れ様！"
@@ -600,7 +599,7 @@ balloon_spot.markdown(f"""
 
 
 # ==========================================
-# 5. 管理者メニュー
+# 🛠 5. 管理者メニュー（実運用・爆速設計版）
 # ==========================================
 with st.expander("🛠 管理者メニュー"):
     pw = st.text_input("パスワード", type="password")
@@ -611,17 +610,31 @@ with st.expander("🛠 管理者メニュー"):
         with tab1:
             st.write("### 📄 税理士提出用ファイルの作成")
             try:
-                df = conn.read(spreadsheet=URL, worksheet=data_tab_name, ttl=0)
-                st.dataframe(df)
+                # 💡 全データから、ログイン中の「企業ID」の打刻だけをシュッと絞り込んで表示
+                df_all_raw = conn.read(spreadsheet=URL, worksheet=data_tab_name, ttl=0)
+                if df_all_raw is not None and not df_all_raw.empty and "企業ID" in df_all_raw.columns:
+                    df = df_all_raw[df_all_raw["企業ID"] == st.session_state.company_id].copy()
+                    # 画面表示用に「企業ID」の列は隠す（見栄えのため）
+                    df_display = df.drop(columns=["企業ID"], errors="ignore")
+                    st.dataframe(df_display, use_container_width=True, hide_index=True)
+                else:
+                    st.info("データがまだありません")
             except:
                 st.info("データがまだありません")
 
         with tab2:
             try:
-                df_m = conn.read(spreadsheet=URL, worksheet=staff_tab_name, ttl=0)
+                # 💡 全スタッフから、ログイン中の「企業ID」のスタッフだけを絞り込む
+                df_all_m = conn.read(spreadsheet=URL, worksheet=staff_tab_name, ttl=0)
+                if df_all_m is None or df_all_m.empty:
+                    df_all_m = pd.DataFrame(columns=['企業ID', '名前'])
+                
+                # 自分の会社分を抽出
+                df_m = df_all_m[df_all_m['企業ID'] == st.session_state.company_id].copy()
                 curr_names = df_m['名前'].tolist() if not df_m.empty else []
             except:
-                df_m = pd.DataFrame(columns=['名前'])
+                df_all_m = pd.DataFrame(columns=['企業ID', '名前'])
+                df_m = pd.DataFrame(columns=['企業ID', '名前'])
                 curr_names = []
 
             st.markdown("### スタッフの追加")
@@ -629,11 +642,17 @@ with st.expander("🛠 管理者メニュー"):
 
             if st.button("新規登録", key="admin_add"):
                 if new_n and new_n not in curr_names:
+                    # 初期文字の削除判定（自分の会社のデータ内だけで判定）
                     if "【テスト用】スタッフを追加してください" in curr_names:
                         df_m = df_m[df_m['名前'] != "【テスト用】スタッフを追加してください"]
+                        # 元の全体データからも該当行を消す
+                        df_all_m = df_all_m[~((df_all_m['企業ID'] == st.session_state.company_id) & (df_all_m['名前'] == "【テスト用】スタッフを追加してください"))]
                     
-                    new_staff_df = pd.DataFrame([{'名前': new_n}])
-                    updated_df = pd.concat([df_m, new_staff_df], ignore_index=True)
+                    # 💡 登録データにしっかり「企業ID」を持たせる！
+                    new_staff_df = pd.DataFrame([{'企業ID': st.session_state.company_id, '名前': new_n}])
+                    
+                    # 全体データに対して合体させる
+                    updated_df = pd.concat([df_all_m, new_staff_df], ignore_index=True)
                     conn.update(spreadsheet=URL, worksheet=staff_tab_name, data=updated_df)
                     st.success(f"{new_n}さんを登録しました")
                     st.rerun()
@@ -649,8 +668,11 @@ with st.expander("🛠 管理者メニュー"):
 
                 with c1_admin:
                     if st.button("上書き保存", key="admin_save"):
-                        df_m.loc[df_m['名前'] == target, '名前'] = renamed
-                        conn.update(spreadsheet=URL, worksheet=staff_tab_name, data=df_m)
+                        # 💡 「自社の対象者」だけをピンポイントに書き換える（他社を巻き込まない）
+                        mask = (df_all_m['企業ID'] == st.session_state.company_id) & (df_all_m['名前'] == target)
+                        df_all_m.loc[mask, '名前'] = renamed
+                        
+                        conn.update(spreadsheet=URL, worksheet=staff_tab_name, data=df_all_m)
                         st.success("修正しました")
                         st.rerun()
 
@@ -668,12 +690,17 @@ with st.expander("🛠 管理者メニュー"):
 
                         with col_yes:
                             if st.button("🔴 削除実行", key="admin_del_final"):
-                                df_m = df_m[df_m['名前'] != target]
-                                if df_m.empty:
-                                    df_m = pd.DataFrame([{"名前": "【テスト用】スタッフを追加してください"}])
-                                conn.update(spreadsheet=URL, worksheet=staff_tab_name, data=df_m)
+                                # 💡 自社の対象者だけを排除する
+                                df_all_m = df_all_m[~((df_all_m['企業ID'] == st.session_state.company_id) & (df_all_m['名前'] == target))]
+                                
+                                # もし自社のスタッフが誰もいなくなったら、テスト用文字を戻す（自社枠として）
+                                if df_all_m[df_all_m['企業ID'] == st.session_state.company_id].empty:
+                                    fallback_df = pd.DataFrame([{"企業ID": st.session_state.company_id, "名前": "【テスト用】スタッフを追加してください"}])
+                                    df_all_m = pd.concat([df_all_m, fallback_df], ignore_index=True)
+                                
+                                conn.update(spreadsheet=URL, worksheet=staff_tab_name, data=df_all_m)
                                 st.session_state.delete_confirm = False
-                                r.rerun()
+                                st.rerun()
 
                         with col_no:
                             if st.button("キャンセル", key="admin_del_cancel"):
@@ -693,7 +720,12 @@ with st.expander("🛠 管理者メニュー"):
 
             st.markdown("### 📈 スタッフ別・月別集計ダッシュボード")
             try:
-                df = conn.read(spreadsheet=URL, worksheet=data_tab_name, ttl=0)
+                # 💡 集計用データも、自社分だけにガッツリ絞り込む
+                df_all_calc = conn.read(spreadsheet=URL, worksheet=data_tab_name, ttl=0)
+                if df_all_calc is not None and not df_all_calc.empty and "企業ID" in df_all_calc.columns:
+                    df = df_all_calc[df_all_calc["企業ID"] == st.session_state.company_id].copy()
+                else:
+                    df = None
             except:
                 df = None
 
@@ -751,9 +783,10 @@ with st.expander("🛠 管理者メニュー"):
                         with col_metric2: st.metric(label="総稼働時間", value=staff_total_str)
                         with col_metric3: st.metric(label="給与計算用時間", value=f"{staff_total_hours} h")
                         
-                        individual_raw = df.copy()
-                        individual_raw["月"] = pd.to_datetime(individual_raw["日付"], errors="coerce").dt.to_period("M").astype(str)
-                        staff_download_df = individual_raw[(individual_raw["名前"] == target_staff) & (individual_raw["月"] == selected_month)].drop(columns=["月"])
+                        # 💡 ダウンロードするCSVからも「企業ID」を除外して綺麗にする
+                        staff_download_df = staff_detail.drop(columns=["月", "稼働分", "日付_表示"], errors="ignore")
+                        if "企業ID" in staff_download_df.columns:
+                            staff_download_df = staff_download_df.drop(columns=["企業ID"])
                         
                         csv_individual = staff_download_df.to_csv(index=False).encode("utf-8-sig")
                         st.download_button(
@@ -774,9 +807,11 @@ with st.expander("🛠 管理者メニュー"):
                     disp_summary = disp_summary.fillna("-").replace({"None": "-", "nan": "-", "": "-"})
                     st.dataframe(disp_summary, use_container_width=True, hide_index=True)
 
-                    out_df = df.copy()
-                    out_df["月"] = pd.to_datetime(out_df["日付"], errors="coerce").dt.to_period("M").astype(str)
-                    csv_data = out_df[out_df["月"] == selected_month].drop(columns=["月"])
+                    # 💡 全員分の提出用CSVからも他社データを完全に排除、かつ「企業ID」列を消して出力
+                    csv_data = filtered.drop(columns=["月", "稼働分"], errors="ignore")
+                    if "企業ID" in csv_data.columns:
+                        csv_data = csv_data.drop(columns=["企業ID"])
+                        
                     csv_all = csv_data.to_csv(index=False).encode("utf-8-sig")
                     
                     st.download_button(
@@ -787,8 +822,6 @@ with st.expander("🛠 管理者メニュー"):
                         key="btn_download_all",
                         use_container_width=True
                     )
-                    
-            st.markdown("""
 <style>
 div[data-testid="stExpander"] button[kind="secondary"],
 div[data-testid="stExpander"] button[kind="primary"] {
