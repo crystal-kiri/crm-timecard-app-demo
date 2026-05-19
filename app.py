@@ -292,10 +292,10 @@ if st.sidebar.button("ログアウト", key="logout_btn"):
 
 
 # ==========================================
-# 3. 時計＆星セクション
+# 3. 時計＆星セクション（強制再描画・安定版）
 # ==========================================
 st.components.v1.html(f"""
-    <div id="container" style="width: 100%; height: 180px; position: relative; overflow: hidden; border-radius:20px; cursor: crosshair;">
+    <div id="container" style="width: 100%; height: 180px; position: relative; overflow: hidden; border-radius:20px; cursor: crosshair; background: transparent;">
         <canvas id="bg" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index:1;"></canvas>
         <canvas id="clk" width="160" height="160" style="position: relative; z-index:2; margin: 0 auto; display: block; pointer-events: none;"></canvas>
     </div>
@@ -305,7 +305,11 @@ st.components.v1.html(f"""
     const clk = document.getElementById('clk'); const cctx = clk.getContext('2d');
     let pts = []; let mouse = {{ x: -1000, y: -1000 }};
 
-    function res() {{ bg.width = container.offsetWidth; bg.height = container.offsetHeight; }}
+    // 💡 画面サイズを確実に取得してキャンバスに割り当てる処理
+    function res() {{ 
+        bg.width = container.clientWidth || 450; 
+        bg.height = 180; 
+    }}
 
     container.addEventListener('mousemove', (e) => {{
         const rect = container.getBoundingClientRect();
@@ -314,15 +318,19 @@ st.components.v1.html(f"""
     }});
     container.addEventListener('mouseleave', () => {{ mouse.x = -1000; mouse.y = -1000; }});
 
-    window.addEventListener('resize', res); res();
+    window.addEventListener('resize', res); 
+    res();
+
+    // 💡 画面が切り替わった直後のサイズバグを防ぐため、0.1秒後にもう一度強制リサイズをかける
+    setTimeout(res, 100);
 
     const cols = ["#ffeb3b","#ff9800","#f44336","#e91e63","#3f51b5"];
     for(let i=0; i<30; i++) {{
         pts.push({{
-            x: Math.random() * 500, y: Math.random() * 180,
+            x: Math.random() * 450, y: Math.random() * 180,
             vx: (Math.random()-0.5) * 0.4, vy: (Math.random()-0.5) * 0.4,
             c: cols[Math.floor(Math.random()*5)], s: Math.random() * 2 + 1
-        }}));
+        }});
     }}
 
     function draw() {{
