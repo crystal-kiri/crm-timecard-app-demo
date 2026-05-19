@@ -822,7 +822,9 @@ with st.expander("🛠 管理者メニュー"):
                         key="btn_download_all",
                         use_container_width=True
                     )
-<style>""", unsafe_allow_html=True)
+<style>
+""", unsafe_allow_html=True)
+
 div[data-testid="stExpander"] button[kind="secondary"],
 div[data-testid="stExpander"] button[kind="primary"] {
     width: 100% !important; height: 50px !important; background-color: transparent !important; font-size: 16px !important; border: 1px solid !important;
