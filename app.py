@@ -216,7 +216,7 @@ div[data-testid="stButton"] button:active {{
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🔑 顧客ログイン判定処理（大文字小文字・空白バグ吸収版）
+# 🔑 顧客ログイン判定処理（原因生中継デバッグ版）
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
@@ -248,28 +248,44 @@ if not st.session_state.logged_in:
             if len(master_df.columns) >= 2:
                 id_col = master_df.columns[0]  # 1番左の列
                 pw_col = master_df.columns[1]  # 左から2番目の列
-                name_col = master_df.columns[2] if len(master_df.columns) > 2 else id_col # 3番目の列
+                name_col = master_df.columns[2] if len(master_df.columns) > 2 else id_col 
                 
-                # 💡 スプシ側のデータをすべて文字列・トリム・小文字に統一
+                # スプシ側のデータを加工
                 master_df[id_col] = master_df[id_col].astype(str).str.strip().str.lower()
                 master_df[pw_col] = master_df[pw_col].astype(str).str.strip()
                 
-                # 💡 画面からの入力値も小文字に統一して比較
+                # 画面からの入力値
                 input_id_clean = str(input_id).strip().lower()
                 input_pw_clean = str(input_pw).strip()
+                
+                # 実際のデータリストを取得（デバッグ用）
+                sheet_ids = master_df[id_col].tolist()
+                sheet_pws = master_df[pw_col].tolist()
                 
                 # 照合処理
                 match = master_df[(master_df[id_col] == input_id_clean) & (master_df[pw_col] == input_pw_clean)]
                 
                 if not match.empty:
                     st.session_state.logged_in = True
-                    st.session_state.company_id = input_id_clean # フォルダやタブ名に使うため小文字で保存
+                    st.session_state.company_id = input_id_clean
                     st.session_state.company_name = match.iloc[0][name_col]
                     st.rerun()
                 else:
-                    st.error("企業IDまたはパスワードが正しくありません。")
+                    # 🔴 不一致の理由を暴くための生データ生中継メッセージ
+                    st.error("❌ 認証に失敗しました。データが一致しません。")
+                    st.warning(f"""
+                    **🔍 システム内部のデータ突合チェック**
+                    * **あなたが画面に入力した値**:
+                      * ID: `{input_id_clean}`
+                      * PW: `{input_pw_clean}`
+                    * **スプシから読み込んだ登録リスト**:
+                      * IDリスト: `{sheet_ids}`
+                      * PWリスト: `{sheet_pws}`
+                    
+                    ※上の入力値と、登録リストの文字が『完全一致』していないと弾かれます！
+                    """)
             else:
-                st.error("スプレッドシートの列が足りません。1列目に企業ID、2列目にパスワードを配置してください。")
+                st.error("スプレッドシートの列が足りません。")
         else:
             st.warning("企業IDとパスワードの両方を入力してください。")
     st.stop()
