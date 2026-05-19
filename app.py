@@ -705,7 +705,7 @@ with st.expander("🛠 管理者メニュー"):
                         with col_no:
                             if st.button("キャンセル", key="admin_del_cancel"):
                                 st.session_state.delete_confirm = False
-                                r.rerun()
+                                st.rerun()  # 💡 r.rerun() から修正しました！
             else:
                 st.info("登録されているスタッフがいません。")
 
@@ -823,17 +823,20 @@ with st.expander("🛠 管理者メニュー"):
                         use_container_width=True
                     )
 
-st.markdown("""
-<style>
-div[data-testid="stExpander"] button[kind="secondary"],
-div[data-testid="stExpander"] button[kind="primary"] {
-    width: 100% !important; height: 50px !important; background-color: transparent !important; font-size: 16px !important; border: 1px solid !important;
-    border-image: linear-gradient(90deg, #ffeb3b, #ff9800, #f44336, #e91e63, #3f51b5) 1 !important;
-    clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0% calc(100% - 10px), 0% 10px) !important;
-    margin-top: 10px !important;
-}
-div[data-testid="stExpander"] div[data-baseweb="input"] button { clip-path: none !important; border: none !important; border-image: none !important; height: auto !important; width: auto !important; }
-</style>
-""", unsafe_allow_html=True)
+        # 🎨 あなたのサイバーグラデーションCSSをここに完璧に統合！
+        st.markdown("""
+            <style>
+            div[data-testid="stExpander"] button[kind="secondary"],
+            div[data-testid="stExpander"] button[kind="primary"] {
+                width: 100% !important; height: 50px !important; background-color: transparent !important; font-size: 16px !important; border: 1px solid !important;
+                border-image: linear-gradient(90deg, #ffeb3b, #ff9800, #f44336, #e91e63, #3f51b5) 1 !important;
+                clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0% calc(100% - 10px), 0% 10px) !important;
+                margin-top: 10px !important;
+            }
+            div[data-testid="stExpander"] div[data-baseweb="input"] button { clip-path: none !important; border: none !important; border-image: none !important; height: auto !important; width: auto !important; }
+            </style>
+        """, unsafe_allow_html=True)
+
     else:
+        # パスワードが一致しない場合の処理（if pw == "0123": にインデントの縦ラインを合わせてあります）
         st.info("正しいパスワードを入力してください。")
