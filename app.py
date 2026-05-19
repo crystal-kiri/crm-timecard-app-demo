@@ -216,12 +216,11 @@ div[data-testid="stButton"] button:active {{
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 🔑 顧客ログイン判定処理（最安定・確定版）
+# 🔑 顧客ログイン判定処理（大文字小文字・空白バグ吸収版）
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
     
-    # 💡 HTMLのdivで直接綺麗に囲み、その中に文字と入力欄を配置する最もバグの出ない手法
     st.markdown(f"""
     <div style="
         background-color: {box_bg};
@@ -235,7 +234,6 @@ if not st.session_state.logged_in:
     </div>
     """, unsafe_allow_html=True)
     
-    # 入力欄とボタン
     input_id = st.text_input("COMPANY ID（企業ID）", placeholder="例: test01", key="login_id_input")
     input_pw = st.text_input("PASSWORD（パスワード）", type="password", placeholder="••••••••", key="login_pw_input")
     
@@ -247,23 +245,25 @@ if not st.session_state.logged_in:
             # スプレッドシートの読み込み
             master_df = conn.read(spreadsheet=URL, worksheet="契約企業マスター", ttl=0)
             
-            # 💡 列の名前(Key)に頼らず、「左から何番目の列か」でデータを特定する安全な方法に変更
-            # 0番目の列＝企業ID、1番目の列＝パスワード、2番目の列＝企業名
             if len(master_df.columns) >= 2:
                 id_col = master_df.columns[0]  # 1番左の列
                 pw_col = master_df.columns[1]  # 左から2番目の列
-                name_col = master_df.columns[2] if len(master_df.columns) > 2 else id_col # 3番目の列（無ければIDで代用）
+                name_col = master_df.columns[2] if len(master_df.columns) > 2 else id_col # 3番目の列
                 
-                # 型を文字列にして、前後の余計な空白をカット
-                master_df[id_col] = master_df[id_col].astype(str).str.strip()
+                # 💡 スプシ側のデータをすべて文字列・トリム・小文字に統一
+                master_df[id_col] = master_df[id_col].astype(str).str.strip().str.lower()
                 master_df[pw_col] = master_df[pw_col].astype(str).str.strip()
                 
+                # 💡 画面からの入力値も小文字に統一して比較
+                input_id_clean = str(input_id).strip().lower()
+                input_pw_clean = str(input_pw).strip()
+                
                 # 照合処理
-                match = master_df[(master_df[id_col] == str(input_id).strip()) & (master_df[pw_col] == str(input_pw).strip())]
+                match = master_df[(master_df[id_col] == input_id_clean) & (master_df[pw_col] == input_pw_clean)]
                 
                 if not match.empty:
                     st.session_state.logged_in = True
-                    st.session_state.company_id = input_id
+                    st.session_state.company_id = input_id_clean # フォルダやタブ名に使うため小文字で保存
                     st.session_state.company_name = match.iloc[0][name_col]
                     st.rerun()
                 else:
