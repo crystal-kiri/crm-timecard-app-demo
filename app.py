@@ -617,7 +617,7 @@ balloon_spot.markdown(f"""
 with st.expander("🛠 管理者メニュー"):
     pw = st.text_input("パスワード", type="password")
 
-    if pw == st.session_state.get("company_pw")::
+    if pw == st.session_state.get("company_pw"):
         tab1, tab2, tab3 = st.tabs(["📊 打刻データ出力", "👥 スタッフ管理", "📈 集計"])
 
         with tab1:
