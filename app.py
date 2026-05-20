@@ -400,8 +400,19 @@ try:
     if df_members is None or df_members.empty or "名前" not in df_members.columns:
         names = ["スタッフを追加してください"]
     else:
+        if "企業ID" in df_members.columns:
+            # 型を文字列にして、トリムと小文字化を合わせておく（ログイン処理と合わせるため）
+            df_members["企業ID"] = df_members["企業ID"].astype(str).str.strip().str.lower()
+            
+            # 現在ログインしている企業の行だけを抽出
+            df_target_company = df_members[df_members["企業ID"] == st.session_state.company_id]
+        else:
+            # 万が一「企業ID」列がない場合は、とりあえず全表示（エラー防止）
+            df_target_company = df_members
+
+        # 2. 絞り込んだデータから名前のリストを作る
         names = (
-            df_members["名前"]
+            df_target_company["名前"] # df_members から df_target_company に変更
             .dropna()
             .astype(str)
             .str.strip()
