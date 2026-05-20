@@ -542,7 +542,7 @@ def save_to_gsheets(name, action, break_minutes=0):
 
         df = pd.concat([df, new_row], ignore_index=True)
         if "企業ID" in df.columns:
-    df.loc[df["企業ID"].isna(), "企業ID"] = st.session_state.company_id
+            df.loc[df["企業ID"].isna(), "企業ID"] = st.session_state.company_id
     
     elif action == "退勤":
         if today_rows.empty:
