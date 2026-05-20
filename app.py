@@ -261,26 +261,24 @@ if not st.session_state.logged_in:
                 input_pw_clean = str(input_pw).strip()
                 
                 # 照合処理
-match = master_df[(master_df[id_col] == input_id_clean) & (master_df[pw_col] == input_pw_clean)]
-
-if not match.empty:
-    st.session_state.logged_in = True
-    st.session_state.company_id = input_id_clean
-    st.session_state.company_name = match.iloc[0][name_col]
-    
-    # 💡 【追加】ログインに使ったパスワードをセッションに保存しておく
-    st.session_state.company_pw = input_pw_clean 
-    
-    st.rerun()
-else:
-    st.error("企業IDまたはパスワードが正しくありません。")
-else:
-st.error("スプレッドシートの列が足りません。")
-else:
-st.warning("企業IDとパスワードの両方を入力してください。")
+                match = master_df[(master_df[id_col] == input_id_clean) & (master_df[pw_col] == input_pw_clean)]
+                
+                if not match.empty:
+                    st.session_state.logged_in = True
+                    st.session_state.company_id = input_id_clean
+                    st.session_state.company_name = match.iloc[0][name_col]
+                    
+                    # 💡 【追加完了】ログインパスワードをセッションに記憶
+                    st.session_state.company_pw = input_pw_clean 
+                    st.rerun()
+                else:
+                    st.error("企業IDまたはパスワードが正しくありません。")
+            else:
+                st.error("スプレッドシートの列が足りません。")
+        else:
+            st.warning("企業IDとパスワードの両方を入力してください。")
+            
     st.stop()
-
-
 # ==========================================
 # 🏢 全社共通のタブ名定義
 # ==========================================
