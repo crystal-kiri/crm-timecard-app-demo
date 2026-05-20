@@ -272,7 +272,7 @@ if not match.empty:
     st.session_state.company_pw = input_pw_clean 
     
     st.rerun()
-                else:
+else:
                     st.error("企業IDまたはパスワードが正しくありません。")
             else:
                 st.error("スプレッドシートの列が足りません。")
