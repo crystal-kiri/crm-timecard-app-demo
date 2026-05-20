@@ -261,13 +261,17 @@ if not st.session_state.logged_in:
                 input_pw_clean = str(input_pw).strip()
                 
                 # 照合処理
-                match = master_df[(master_df[id_col] == input_id_clean) & (master_df[pw_col] == input_pw_clean)]
-                
-                if not match.empty:
-                    st.session_state.logged_in = True
-                    st.session_state.company_id = input_id_clean
-                    st.session_state.company_name = match.iloc[0][name_col]
-                    st.rerun()
+match = master_df[(master_df[id_col] == input_id_clean) & (master_df[pw_col] == input_pw_clean)]
+
+if not match.empty:
+    st.session_state.logged_in = True
+    st.session_state.company_id = input_id_clean
+    st.session_state.company_name = match.iloc[0][name_col]
+    
+    # 💡 【追加】ログインに使ったパスワードをセッションに保存しておく
+    st.session_state.company_pw = input_pw_clean 
+    
+    st.rerun()
                 else:
                     st.error("企業IDまたはパスワードが正しくありません。")
             else:
@@ -615,7 +619,7 @@ balloon_spot.markdown(f"""
 with st.expander("🛠 管理者メニュー"):
     pw = st.text_input("パスワード", type="password")
 
-    if pw == "0123":
+    if pw == st.session_state.get("company_pw")::
         tab1, tab2, tab3 = st.tabs(["📊 打刻データ出力", "👥 スタッフ管理", "📈 集計"])
 
         with tab1:
