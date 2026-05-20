@@ -522,13 +522,18 @@ def save_to_gsheets(name, action, break_minutes=0):
             if pd.notna(df.loc[idx, "出勤"]) and pd.isna(df.loc[idx, "退勤"]):
                 st.warning("すでに出勤済みです")
                 return False
-
-        new_row = pd.DataFrame([{
-            "名前": name, "日付": today, "出勤": time_str,
-            "退勤": None, "休憩(分)": None, "実稼働": None
-        }])
         
-        new_row["名前"] = new_row["名前"].astype("string")
+        new_row = pd.DataFrame([{
+    "企業ID": st.session_state.company_id,
+    "名前": name,
+    "日付": today,
+    "出勤": time_str,
+    "退勤": None,
+    "休憩(分)": None,
+    "実稼働": None
+}])
+        
+        ew_row["名前"] = new_row["名前"].astype("string")
         new_row["日付"] = new_row["日付"].astype("string")
         new_row["出勤"] = new_row["出勤"].astype("string")
         new_row["退勤"] = new_row["退勤"].astype("string")
@@ -536,7 +541,9 @@ def save_to_gsheets(name, action, break_minutes=0):
         new_row["実稼働"] = new_row["実稼働"].astype("string")
 
         df = pd.concat([df, new_row], ignore_index=True)
-
+        if "企業ID" in df.columns:
+    df.loc[df["企業ID"].isna(), "企業ID"] = st.session_state.company_id
+    
     elif action == "退勤":
         if today_rows.empty:
             st.error("先に出勤を押してください")
