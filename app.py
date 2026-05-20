@@ -532,13 +532,6 @@ def save_to_gsheets(name, action, break_minutes=0):
     "休憩(分)": None,
     "実稼働": None
 }])
-        
-        ew_row["名前"] = new_row["名前"].astype("string")
-        new_row["日付"] = new_row["日付"].astype("string")
-        new_row["出勤"] = new_row["出勤"].astype("string")
-        new_row["退勤"] = new_row["退勤"].astype("string")
-        new_row["休憩(分)"] = new_row["休憩(分)"].astype("Int64")
-        new_row["実稼働"] = new_row["実稼働"].astype("string")
 
         df = pd.concat([df, new_row], ignore_index=True)
         if "企業ID" in df.columns:
