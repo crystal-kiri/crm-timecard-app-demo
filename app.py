@@ -273,11 +273,11 @@ if not match.empty:
     
     st.rerun()
 else:
-                    st.error("企業IDまたはパスワードが正しくありません。")
-            else:
-                st.error("スプレッドシートの列が足りません。")
-        else:
-            st.warning("企業IDとパスワードの両方を入力してください。")
+    st.error("企業IDまたはパスワードが正しくありません。")
+else:
+st.error("スプレッドシートの列が足りません。")
+else:
+st.warning("企業IDとパスワードの両方を入力してください。")
     st.stop()
 
 
