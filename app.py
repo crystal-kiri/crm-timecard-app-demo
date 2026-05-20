@@ -275,9 +275,9 @@ if not match.empty:
 else:
     st.error("企業IDまたはパスワードが正しくありません。")
 else:
-    st.error("スプレッドシートの列が足りません。")
+st.error("スプレッドシートの列が足りません。")
 else:
-    st.warning("企業IDとパスワードの両方を入力してください。")
+st.warning("企業IDとパスワードの両方を入力してください。")
     st.stop()
 
 
